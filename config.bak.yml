@@ -1,0 +1,10 @@
+# Store database connection information here and rename this file to config.yml 
+default:
+  dbInfo:
+    host: 'localhost'
+    port: '3306'
+    user: 'dbuser'
+    password: 'dbpassword'
+    database: 'qrchem'
+    dataTable: 'ExpData'
+    courseTable: 'Courses'

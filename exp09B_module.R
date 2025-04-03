@@ -29,7 +29,7 @@ exp09BUI <- function(id) {
           textInput(ns("q4"), "4. Mass unknown salt solution used (g):"),
           span(textOutput(ns("v4")), style="color:blue"),
           
-          textInput(ns("q5"), "5. Volume of unknown salt solution used = 50.0 mL  (L):"),
+          textInput(ns("q5"), "5. Volume of unknown salt solution used = 30.0mL / 1000  (L):"),
           span(textOutput(ns("v5")), style="color:blue")
       )
     ),
@@ -37,7 +37,7 @@ exp09BUI <- function(id) {
     
     fluidRow(
       box(title = 'Calculations After Evaporation, Drying, and Cooling', status = "primary", width = 12,
-          textInput(ns("q6"), "6. Mass of 250-mL beaker containing dry salt (g):"),
+          textInput(ns("q6"), "6. Mass of Evapoating Dish containing dry salt (g):"),
           span(textOutput(ns("v6")), style="color:blue"),
           
           textInput(ns("q7"), "7. Mass salt recovered (g):"),

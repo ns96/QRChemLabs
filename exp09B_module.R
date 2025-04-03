@@ -20,10 +20,10 @@ exp09BUI <- function(id) {
           selectInput(ns("u1"), "Unknown #:", c(Choose = '','1', '2', '3')),
           span(textOutput(ns("u1v")), style="color:blue"),
           
-          textInput(ns("q2"), "2. Mass of empty and dry 250-mL beaker (g):"),
+          textInput(ns("q2"), "2. Mass of empty and dry Evapoating Dish (g):"),
           span(textOutput(ns("v2")), style="color:blue"),
           
-          textInput(ns("q3"), "3. Mass of 250-mL beaker + 50.0 mL of unknown salt solution (g):"),
+          textInput(ns("q3"), "3. Mass of Evapoating Dish + 30.0mL of unknown salt solution (g):"),
           span(textOutput(ns("v3")), style="color:blue"),
           
           textInput(ns("q4"), "4. Mass unknown salt solution used (g):"),

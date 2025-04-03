@@ -25,7 +25,7 @@ exp03UI <- function(id) {
           textInput(ns("q4"), "4. Mass Unknown (g):"),
           span(textOutput(ns("v4")), style="color:blue"),
           
-          textInput(ns("q5"), "5. Mass of Beaker#2 (g):"),
+          textInput(ns("q5"), "5. Mass of Dry Evaporating Dish (g):"),
           span(textOutput(ns("v5")), style="color:blue")
       ),
       
@@ -47,13 +47,13 @@ exp03UI <- function(id) {
       ),
       
       box(title = "Percent Salt", status = "primary",
-          textInput(ns("q9"), "9. Mass of Beaker#2 + Salt (g):"),
+          textInput(ns("q9"), "9. Mass of Evaporating Dish + Salt (g):"),
           span(textOutput(ns("v9")), style="color:blue"),
           
           textInput(ns("q10"), "10. Mass of Salt Recovered (g):"),
           span(textOutput(ns("v10")), style="color:blue"),
           
-          textInput(ns("q11"), "11. Percent Sand (%):"),
+          textInput(ns("q11"), "11. Percent Salt (%):"),
           span(textOutput(ns("v11")), style="color:blue")
       )
     ),

@@ -1,4 +1,4 @@
-# helpers R scripts
+# helpers R functions
 
 library(jsonlite)
 library(RMariaDB)
@@ -75,8 +75,6 @@ getSmoothPlot = function(data, xlabel, ylabel, n1 = "real", n2 = "exp") {
   
   return(p)
 }
-
-
 
 # function to generate message if answer is valid
 showValid <- function(valid, ans, pin) {
@@ -295,7 +293,8 @@ getValidPins = function() {
 # generate pins for a particular course
 masterPins = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12")
 getCoursePins = function(courseCode, courseLocker) {
-  return(paste0(courseCode, courseLocker, masterPins))
+  pins = paste0(courseCode, courseLocker, masterPins)
+  return(pins)
 }
 
 #
@@ -308,6 +307,60 @@ mysql <- config::get("dbInfo")
 databaseName = mysql$database
 dataTable = mysql$dataTable
 courseTable = mysql$courseTable
+semesterTable = mysql$semesterTable
+
+# load the current semester from the database
+loadSemester = function() {
+  currentSemester = "UNKNOWN"
+  
+  tryCatch( {
+    # connect to database
+    db <- dbConnect(MariaDB(), dbname = databaseName, host = mysql$host, 
+                    port = mysql$port, user = mysql$user, password = mysql$password)
+    
+    query <- sprintf("SELECT * FROM %s WHERE Current = 1", semesterTable)
+    
+    print(query)
+    
+    # Submit the update query and disconnect
+    df <- dbGetQuery(db, query)
+    dbDisconnect(db)
+    
+    currentSemester <- df[1, 2]
+    print(paste("Current Semester:", currentSemester))
+  },
+  error = function(error_message) {
+    print("***Error Reading From Database***")
+    print(error_message)
+    dbDisconnect(db)
+  })
+  
+  return(currentSemester)
+}
+
+# get dataframe with all the semesters
+getSemesters = function() {
+  tryCatch( {
+    # connect to database
+    db <- dbConnect(MariaDB(), dbname = databaseName, host = mysql$host, 
+                    port = mysql$port, user = mysql$user, password = mysql$password)
+    
+    query <- sprintf("SELECT * FROM %s", semesterTable)
+    
+    print(query)
+    
+    # Submit the update query and disconnect
+    df <- dbGetQuery(db, query)
+    dbDisconnect(db)
+    
+    return(df)
+  },
+  error = function(error_message) {
+    print("***Error Reading From Database***")
+    print(error_message)
+    dbDisconnect(db)
+  })
+}
 
 # get valid pins for current semester from database
 loadCourses = function(semester) {
@@ -422,9 +475,3 @@ loadFromDB = function(pin, expName) {
 # Interesting links for this project
 # Reactive variables to get around scope of reactive/observer block of code
 # https://stackoverflow.com/questions/50253655/reset-r-shiny-actionbutton-to-use-it-more-than-once
-
-# 
-# DEBUG Code
-#
-#currentSemester = "FALL_2019"
-#loadCourses(currentSemester)

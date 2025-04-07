@@ -34,7 +34,6 @@ exp09BUI <- function(id) {
       )
     ),
 
-    
     fluidRow(
       box(title = 'Calculations After Evaporation, Drying, and Cooling', status = "primary", width = 12,
           textInput(ns("q6"), "6. Mass of Evapoating Dish containing dry salt (g):"),

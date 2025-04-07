@@ -8,3 +8,5 @@ default:
     database: 'qrchem'
     dataTable: 'ExpData'
     courseTable: 'Courses'
+    semesterTable: 'Semesters'
+    userPinTable: 'UserPins'

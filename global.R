@@ -7,7 +7,7 @@ source("helpers.R")
 #
 
 # specify the semester and load the course information from database
-currentSemester = "SPRING_2025" # Spring 2025
+currentSemester = loadSemester()
 loadCourses(currentSemester)
 
 # get the course codes
@@ -15,7 +15,7 @@ courseCodes = getCourseCodes()
 
 # Set the admin pin. This should set from a DB
 adminPin = "1001"
-devPins = c(adminPin, "0123", "1210", "1000", "1110", "5555")
+devPins = c(adminPin, "0123", "1210")
 validPins = getValidPins()
 
 print("Loading experiment modules ...")

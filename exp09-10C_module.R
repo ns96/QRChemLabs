@@ -52,11 +52,7 @@ exp0910CUI <- function(id) {
       br(),
       a("YouTube -- Comparing Strong and Weak Acid Titration Curves", target="_blank", href="https://www.youtube.com/watch?v=xRVTdDrrtLc"),
       br(),
-      HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/xRVTdDrrtLc" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
-      br(),
-      a("YouTube -- Interpreting pH titration curves", target="_blank", href="https://www.youtube.com/watch?v=l9VLhbD2BlE"),
-      br(),
-      HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/l9VLhbD2BlE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+      HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/xRVTdDrrtLc" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
     ),
     
     fluidRow(

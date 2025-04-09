@@ -13,9 +13,12 @@ loadCourses(currentSemester)
 # get the course codes
 courseCodes = getCourseCodes()
 
-# Set the admin pin. This should set from a DB
-adminPin = "1001"
-devPins = c(adminPin, "0123", "1210")
+# load the admin, dev, and other user pins from database
+adminPin = NULL # read from DB
+devPins = c() # read from DB 
+loadPinsFromDB()
+
+# get the list of valid pins based on current courses
 validPins = getValidPins()
 
 print("Loading experiment modules ...")

@@ -24,7 +24,7 @@ exp01UI <- function(id) {
       ),
       
       box(title = "Part B -- Length Measurements", status = "primary",
-          textInput(ns("q4"), "5. Diameter of a Watchglass (cm):", value = ""),
+          textInput(ns("q4"), "4. Diameter of a Watchglass (cm):", value = ""),
           span(textOutput(ns("v4")), style="color:blue"),
           
           textInput(ns("q5a"), "5a. Length a Test-Tube (cm):", value = ""),
@@ -169,7 +169,7 @@ exp01 <- function(input, output, session, pin) {
     ans6 = 3.14*((q5b/2)^2)*q5a
     error6 = abs(q6-ans6)
     valid6 = error6 < 0.5
-    output$v6 <- renderText({ showValid(valid6, ans6, pin) })
+    output$v6 <- renderText({ showValid(valid6, ans6, pin, 0) })
     qlist["q6"] = q6
     
     q7 = as.numeric(input$q7)
@@ -196,7 +196,7 @@ exp01 <- function(input, output, session, pin) {
     ans11 = q1/1000.0
     error11 = abs(q11-ans11)
     valid11 = error11 < 0.5
-    output$v11 <- renderText({ showValid(valid11, ans11, pin) })
+    output$v11 <- renderText({ showValid(valid11, ans11, pin, 7) })
     qlist["q11"] = q11
     
     q12 = as.numeric(input$q12)
@@ -204,35 +204,35 @@ exp01 <- function(input, output, session, pin) {
     error12 = abs(q12-ans12)
     valid12 = error12 < 0.5
     cat(ans12, error12, valid12)
-    output$v12 <- renderText({ showValid(valid12, ans12, pin) })
+    output$v12 <- renderText({ showValid(valid12, ans12, pin, 0) })
     qlist["q12"] = q12
     
     q13 = as.numeric(input$q13)
     ans13 = q7/1000.0
     error13 = abs(q13-ans13)
     valid13 = error13 < 0.5
-    output$v13 <- renderText({ showValid(valid13, ans13, pin) })
+    output$v13 <- renderText({ showValid(valid13, ans13, pin, 4) })
     qlist["q13"] = q13
     
     q14 = as.numeric(input$q14)
     ans14 = q8 + 273.15
     error14 = abs(q14-ans14)
     valid14 = error14 < 0.5
-    output$v14 <- renderText({ showValid(valid14, ans14, pin) })
+    output$v14 <- renderText({ showValid(valid14, ans14, pin, 0) })
     qlist["q14"] = q14
     
     q15 = as.numeric(input$q15)
     ans15 = (q9*1.8) + 32
     error15 = abs(q15-ans15)
     valid15 = error15 < 0.5
-    output$v15 <- renderText({ showValid(valid15, ans15, pin) })
+    output$v15 <- renderText({ showValid(valid15, ans15, pin, 0) })
     qlist["q15"] = q15
     
     q16 = as.numeric(input$q16)
     ans16 = ans13/3.7854
     error16 = abs(q16-ans16)
     valid16 = error16 < 0.5
-    output$v16 <- renderText({ showValid(valid16, ans16, pin) })
+    output$v16 <- renderText({ showValid(valid16, ans16, pin, 4) })
     qlist["q16"] = q16
     
     # save to the database now

@@ -77,7 +77,7 @@ getSmoothPlot = function(data, xlabel, ylabel, n1 = "real", n2 = "exp") {
 }
 
 # function to generate message if answer is valid
-showValid <- function(valid, ans, pin) {
+showValid <- function(valid, ans, pin, rdigits = 2) {
   # check to see if to reset the pin to the adminPin
   if(isAdminUser(pin)) {
     pin = adminPin
@@ -85,7 +85,7 @@ showValid <- function(valid, ans, pin) {
   
   validText = NULL
   if(is.numeric(ans)) {
-    ans = round(ans, 2)
+    ans = format(round(ans, rdigits), nsmall = rdigits)
   }
   
   if(!is.na(valid) && valid) {
@@ -241,12 +241,14 @@ getCourseCodes = function() {
   }
 }
 
-# function to check if pin is adminUser pin
+# function to check if pin is adminUser pin or a dev pin
 isAdminUser = function(pin) {
-  if(grepl(adminPin, pin, fixed = T) | 
-     grepl("1210", pin, fixed = T) | 
-     grepl("1110", pin, fixed = T) |
-     grepl("1000", pin, fixed = T)) {
+  # only take the last 4 characters of the pin
+  pin = substr(pin, nchar(pin)-3, nchar(pin))
+  
+  if(grepl(adminPin, pin, fixed = T)) {
+    return(TRUE)
+  } else if(pin %in% devPins) {
     return(TRUE)
   } else {
     return(FALSE)
@@ -256,8 +258,6 @@ isAdminUser = function(pin) {
 # function to see if to show sample data
 showSampleData = function(pin) {
   if(isAdminUser(pin)) {
-    return(TRUE)
-  } else if(grepl("5555", pin, fixed = T)) {
     return(TRUE)
   } else {
     return(FALSE)
@@ -302,12 +302,48 @@ getCoursePins = function(courseCode, courseLocker) {
 #
 
 # load the database connection information from yml config file
+# https://solutions.posit.co/connections/db/best-practices/managing-credentials/
 mysql <- config::get("dbInfo")
+#mysql <- config::get("dbTest")
 
 databaseName = mysql$database
 dataTable = mysql$dataTable
 courseTable = mysql$courseTable
 semesterTable = mysql$semesterTable
+userPinTable = mysql$userPinTable
+
+# load the admin and dev pins and other pins from the database
+loadPinsFromDB = function() {
+  # connect to database
+  db <- dbConnect(MariaDB(), dbname = databaseName, host = mysql$host, 
+                  port = mysql$port, user = mysql$user, password = mysql$password)
+  
+  query <- sprintf("SELECT * FROM %s", userPinTable)
+  
+  print(query)
+  
+  # Submit the update query and disconnect
+  df <- dbGetQuery(db, query)
+  dbDisconnect(db)
+  
+  # iterate through return pins and place them in the correct global variable
+  for(i in 1:nrow(df)) {
+    row <- df[i, ]
+    
+    # check if the pin is the admin pin
+    if(row[3] == 1) {
+      adminPin <<- row[2]
+    }
+  
+    # get the dev pins
+    if(row[4] == 1) {
+      devPins <<- c(devPins, row[2])
+    }
+  }
+  
+  print(paste("Admin Pin:", adminPin))
+  print(paste("Dev Pins:", devPins))
+}
 
 # load the current semester from the database
 loadSemester = function() {
@@ -387,7 +423,7 @@ loadCourses = function(semester) {
   })
 }
 
-# function to save data to backend database
+# function to save data to the backend database
 saveToDB = function(pin, expName, questionList) {
   if(any(questionList == "" || anyNA(questionList))) {
     return("Missing Data / Not Saving ...")

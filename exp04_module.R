@@ -151,17 +151,17 @@ exp04 <- function(input, output, session, pin) {
     ans4 = q3 - q2
     error4 = abs(q4-ans4)
     valid4 = error4 < 0.5
-    output$v4 <- renderText({ showValid(valid4, ans4, pin) })
+    output$v4 <- renderText({ showValid(valid4, ans4, pin, 4) })
     qlist["q4"] = q4
     
     q5 = as.numeric(input$q5)
-    ans5 = 0.050
+    ans5 = 0.0500
     error5 = abs(q5-ans5)
     valid5 = error5 == 0.0
-    output$v5 <- renderText({ showValid(valid5, ans5, pin) })
+    output$v5 <- renderText({ showValid(valid5, ans5, pin, 4) })
     qlist["q5"] = q5
     
-    # calculate the molarity and percent by mass now
+    # calculate the Molarity and percent by mass now
     q6 = as.numeric(input$q6)
     qlist["q6"] = q6
     
@@ -169,14 +169,14 @@ exp04 <- function(input, output, session, pin) {
     ans7 = q6 - q2
     error7 = abs(q7-ans7)
     valid7 = error7 < 0.1
-    output$v7 <- renderText({ showValid(valid7, ans7, pin) })
+    output$v7 <- renderText({ showValid(valid7, ans7, pin, 4) })
     qlist["q7"] = q7
     
     q8 = as.numeric(input$q8)
     ans8 = ans7/58.44
     error8 = abs(q8-ans8)
     valid8 = error8 < 0.001
-    output$v8 <- renderText({ showValid(valid8, ans8, pin) })
+    output$v8 <- renderText({ showValid(valid8, ans8, pin, 4) })
     qlist["q8"] = q8
     
     q9 = as.numeric(input$q9)
@@ -190,7 +190,7 @@ exp04 <- function(input, output, session, pin) {
     ans10 = (ans7/ans4)*100
     error10 = abs(q10-ans10)
     valid10 = error10 < 0.5
-    output$v10 <- renderText({ showValid(valid10, ans10, pin) })
+    output$v10 <- renderText({ showValid(valid10, ans10, pin, 1) })
     qlist["q10"] = q10
     
     # now compare percentage to actual samples to calculate 

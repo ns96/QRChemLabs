@@ -123,7 +123,7 @@ exp03 <- function(input, output, session, pin) {
     ans4 = q3 - q2
     error4 = abs(q4-ans4)
     valid4 = error4 < 0.5
-    output$v4 <- renderText({ showValid(valid4, ans4, pin) })
+    output$v4 <- renderText({ showValid(valid4, ans4, pin, 4) })
     qlist["q4"] = q4
     
     q5 = as.numeric(input$q5)
@@ -137,14 +137,14 @@ exp03 <- function(input, output, session, pin) {
     ans7 = q6 - q2
     error7 = abs(q7-ans7)
     valid7 = error7 < 0.5
-    output$v7 <- renderText({ showValid(valid7, ans7, pin) })
+    output$v7 <- renderText({ showValid(valid7, ans7, pin, 4) })
     qlist["q7"] = q7
     
     q8 = as.numeric(input$q8)
     ans8 = (ans7/ans4)*100
     error8 = abs(q8-ans8)
     valid8 = error8 < 0.5
-    output$v8 <- renderText({ showValid(valid8, ans8, pin) })
+    output$v8 <- renderText({ showValid(valid8, ans8, pin, 1) })
     qlist["q8"] = q8
     
     # Percent salt recovered
@@ -155,22 +155,22 @@ exp03 <- function(input, output, session, pin) {
     ans10 = q9 - q5
     error10 = abs(q10-ans10)
     valid10 = error10 < 0.5
-    output$v10 <- renderText({ showValid(valid10, ans10, pin) })
+    output$v10 <- renderText({ showValid(valid10, ans10, pin, 4) })
     qlist["q10"] = q10
     
     q11 = as.numeric(input$q11)
     ans11 = (ans10/ans4)*100
     error11 = abs(q11-ans11)
     valid11 = error11 < 0.5
-    output$v11 <- renderText({ showValid(valid11, ans11, pin) })
+    output$v11 <- renderText({ showValid(valid11, ans11, pin, 1) })
     qlist["q11"] = q11
     
     # total percent recovered
     q12 = as.numeric(input$q12)
-    ans12 = q8 + q11
+    ans12 = ans8 + ans11
     error12 = abs(q12-ans12)
     valid12 = error12 < 0.5
-    output$v12 <- renderText({ showValid(valid12, ans12, pin) })
+    output$v12 <- renderText({ showValid(valid12, ans12, pin, 1) })
     qlist["q12"] = q12
     
     # now compare percentage to actual samples to calculate percent errors

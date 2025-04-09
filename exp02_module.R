@@ -34,17 +34,17 @@ exp02UI <- function(id) {
     ),
     
     fluidRow(
-      box(title = "Part-B Unknown Liquid (UL)", status = "primary",
+      box(title = "Part-B Unknown Liquid", status = "primary",
           textInput(ns("u1"), "Unknown Liquid Number:"),
           span(textOutput(ns("u1v")), style="color:blue"),
           
           textInput(ns("q10"), "10.	Mass Graduated cylinder (g):"),
           span(textOutput(ns("v10")), style="color:blue"),
           
-          textInput(ns("q11"), "11.	Mass Graduated cylinder + 10.0 mL UL (g):"),
+          textInput(ns("q11"), "11.	Mass Graduated cylinder + 10.0 mL Unknown Liquid (g):"),
           span(textOutput(ns("v11")), style="color:blue"),
           
-          textInput(ns("q12"), "12.	Mass of 10.0 mL UL (g):"),
+          textInput(ns("q12"), "12.	Mass of 10.0 mL Unknown Liquid (g):"),
           span(textOutput(ns("v12")), style="color:blue"),
           
           textInput(ns("q13"), "13.	Density of Unknown Liquid (g/mL):"),
@@ -185,7 +185,7 @@ exp02 <- function(input, output, session, pin) {
   })
   
   observeEvent(input$check, {
-    qlist = list() # stores inputed answers for saving to DB
+    qlist = list() # stores computed answers for saving to DB
     
     #
     # Handle part A data
@@ -240,11 +240,11 @@ exp02 <- function(input, output, session, pin) {
     ans12 = q11 - q10
     error12 = abs(q12-ans12)
     valid12 = error12 < 0.1
-    output$v12 <- renderText({ showValid(valid12, ans12, pin) })
+    output$v12 <- renderText({ showValid(valid12, ans12, pin, 4) })
     qlist["q12"] = q12
     
     q13 = as.numeric(input$q13)
-    ans13 = q12/10.0
+    ans13 = ans12/10.0
     error13 = abs(q13-ans13)
     valid13 = error13 < 0.05
     output$v13 <- renderText({ showValid(valid13, ans13, pin) })
@@ -297,7 +297,7 @@ exp02 <- function(input, output, session, pin) {
     output$v19 <- renderText({ showValid(valid19, ans19, pin) })
     qlist["q19"] = q19
     
-    # Display perent error based on known value
+    # Display percent error based on known value
     if(input$u2 != "") {
       u2 = as.numeric(input$u2)
       qlist["u2"] = u2
@@ -334,15 +334,16 @@ exp02 <- function(input, output, session, pin) {
     ans24 = q22/q23
     error24 = abs(q24-ans24)
     valid24 = error24 < 0.1
-    output$v24 <- renderText({ showValid(valid24, ans24, pin) })
+    output$v24 <- renderText({ showValid(valid24, ans24, pin, 3) })
     qlist["q24"] = q24
     
     q25 = as.numeric(input$q25)
     ans25 = ans24/(q20*q21)
     error25 = abs(q25 - ans25)
     valid25 = error25 < 0.001
-    output$v25 <- renderText({ showValid(valid25, ans25, pin) })
+    output$v25 <- renderText({ showValid(valid25, ans25, pin, 5) })
     qlist["q25"] = q25
+    #print(paste("Q25 Debug", ans24, q20, q21, ans25))
     
     # save to the database
     dbm = saveToDB(pin, "EXP02", qlist)

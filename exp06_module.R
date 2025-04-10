@@ -7,6 +7,8 @@
 unknownsExp06 = c("Calcium Sulfate", "Cupric Sulfate", 
              "Magnesium Sulfate", "Sodium Carbonate")
 
+avg.waterEXP06 = 0.0
+
 # The UI code
 exp06UI <- function(id) {
   # Create a namespace function using the provided id
@@ -129,8 +131,9 @@ exp06 <- function(input, output, session, pin) {
     
     # get the dataframe containing data for alum
     DF1 = hot_to_r(input$hot1)
-    
-    output$vhot1 <- renderText({ checkTableDataExp06(DF1, pin, 4) })
+    checklist = checkTableDataExp06(DF1, pin, 1)
+    output$vhot1 <- renderText({ checklist$text })
+    print(paste("Percent Water: ", avg.waterEXP06))
     
     # store the alum data
     qlist["q1"] = paste(DF1[1, c(2,3)], collapse = ",")
@@ -142,13 +145,13 @@ exp06 <- function(input, output, session, pin) {
     
     # calculate average of the percent water
     q7 = as.numeric(input$q7)
-    ans7 = (as.numeric(DF1[6,2]) + as.numeric(DF1[6,3]))/2
+    ans7 = checklist$data
     error7 = abs(q7-ans7)
     valid7 = error7 < 0.5
     output$v7 <- renderText({ showValid(valid7, ans7, pin) })
     qlist["q7"] = q7
     
-    # get the theoritical percent water
+    # get the theoretical percent water
     q8 = as.numeric(input$q8)
     qlist["q8"] = q8
     
@@ -157,13 +160,20 @@ exp06 <- function(input, output, session, pin) {
     ans9 = (abs(ans7-q8)/q8)*100
     error9 = abs(q9 - ans9)
     valid9 = error9 < 0.5
-    output$v9 <- renderText({ showValid(valid9, ans9, pin) })
+    
+    # show the percent error
+    if(ans9 < 1) {
+      output$v9 <- renderText({ showValid(valid9, ans9, pin, 3) })
+    } else {
+      output$v9 <- renderText({ showValid(valid9, ans9, pin) })
+    }
+    
     qlist["q9"] = q9
     
     # get the dataframe containing data for alum
     DF2 = hot_to_r(input$hot2)
-    
-    output$vhot2 <- renderText({ checkTableDataExp06(DF2, pin, 13) })
+    checklist = checkTableDataExp06(DF2, pin, 13)
+    output$vhot2 <- renderText({ checklist$text })
     
     # store the alum data
     qlist["q10"] = paste(DF2[1, c(2,3)], collapse = ",")
@@ -174,8 +184,9 @@ exp06 <- function(input, output, session, pin) {
     qlist["q15"] = paste(DF2[6, c(2,3)], collapse = ",")
     
     # indicate the percent error
-    avg.water = (as.numeric(DF2[6,2]) + as.numeric(DF2[6,3]))/2
-    output$u1v <- renderText({ getHydratePercentErrorExp06(input$u1, avg.water)})
+    avg.water = checklist$data
+    avg.water.inputed = (as.numeric(DF2[6,2]) + as.numeric(DF2[6,3]))/2
+    output$u1v <- renderText({ getHydratePercentErrorExp06(input$u1, avg.water, avg.water.inputed) })
     qlist["u1"] = input$u1
     
     # save to the database now
@@ -297,33 +308,42 @@ checkTableDataExp06 = function(DF, pin, q.start) {
   ans1b = as.numeric(DF[2,3]) - as.numeric(DF[1,3])
   validText = checkRowDataExp06(DF[4,2], DF[4,3], ans1a, ans1b, q.start, pin)
   
-  # mass water lost
+  # mass of water lost
   ans2a = as.numeric(DF[2,2]) - as.numeric(DF[3,2])
   ans2b = as.numeric(DF[2,3]) - as.numeric(DF[3,3])
   validText = paste(validText, '/', checkRowDataExp06(DF[5,2], DF[5,3], ans2a, ans2b, q.start+1, pin))
   
-  # mass water lost
+  # percent of water in hydrate
   ans3a = (ans2a/ans1a)*100
   ans3b = (ans2b/ans1b)*100
-  validText = paste(validText, '/', checkRowDataExp06(DF[6,2], DF[6,3], ans3a, ans3b, q.start+2, pin))
+  validText = paste(validText, '/', checkRowDataExp06(DF[6,2], DF[6,3], ans3a, ans3b, q.start+2, pin, 1))
   
-  return(validText)                  
+  # calculate the average of answer 3 
+  avg.water = (ans3a + ans3b)/2
+  print(paste("Check Table Percent Water: ", avg.water))
+  
+  checklist = list("text" = validText, "data" = avg.water)
+  return(checklist)                  
 }
 
-checkRowDataExp06 = function(qXa, qXb, ansXa, ansXb, q.number, pin) {
+checkRowDataExp06 = function(qXa, qXb, ansXa, ansXb, q.number, pin, rdigits = 4) {
   qXa = as.numeric(qXa)
   qXb = as.numeric(qXb)
   
   errorXa = abs(qXa-ansXa)
   errorXb = abs(qXb-ansXb)
   valid = (errorXa < 0.5) && (errorXb < 0.5)
+  
+  ansXa = format(round(ansXa, rdigits), nsmall = rdigits)
+  ansXb = format(round(ansXb, rdigits), nsmall = rdigits)
+  
   ans = paste(ansXa, ',' , ansXb)
   vt = showValid(valid, ans, pin)
   validText = paste("Q", q.number, ":", vt)
   return(validText)
 }
 
-getHydratePercentErrorExp06 = function(unknown, avg.water) {
+getHydratePercentErrorExp06 = function(unknown, avg.water, avg.water.inputed) {
   actual.water = 0.0
   
   if(unknown == 'Calcium Sulfate') {
@@ -336,5 +356,9 @@ getHydratePercentErrorExp06 = function(unknown, avg.water) {
     actual.water = 62.94
   }
   
-  return(percentError(actual.water, avg.water))
+  avg.water = format(round(avg.water, 1), nsmall = 1)
+  percentError = paste("Answer:", avg.water, "Inputed % Water:", avg.water.inputed,
+                       percentError(actual.water, avg.water.inputed))
+  
+  return(percentError)
 }

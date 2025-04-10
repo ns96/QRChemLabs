@@ -85,7 +85,7 @@ exp05 <- function(input, output, session, pin) {
     q1v = format(q1, nsmall = 4)
     updateTextInput(session, "q1", value = q1v)
     
-    mass.water = runif(1, min=38, max=42)
+    mass.water = runif(1, min=48, max=52)
     q2 = round(mass.water + q1, digits = 4)
     q2v = format(q2, nsmall = 4)
     updateTextInput(session, "q2", value = q2v)
@@ -128,7 +128,7 @@ exp05 <- function(input, output, session, pin) {
     ans3 = q2 - q1
     error3 = abs(q3-ans3)
     valid3 = error3 < 0.5
-    output$v3 <- renderText({ showValid(valid3, ans3, pin) })
+    output$v3 <- renderText({ showValid(valid3, ans3, pin, 4) })
     qlist["q3"] = q3
     
     q4 = as.numeric(input$q4)
@@ -153,30 +153,36 @@ exp05 <- function(input, output, session, pin) {
     ans8 = q7 - q2
     error8 = abs(q8-ans8)
     valid8 = error8 < 0.5
-    output$v8 <- renderText({ showValid(valid8, ans8, pin) })
+    output$v8 <- renderText({ showValid(valid8, ans8, pin, 4) })
     qlist["q8"] = q8
     
     # calculate heat gained by water and lost by metal sample
     q9 = as.numeric(input$q9)
-    ans9 = q3*1.00*(q6 - q4)
+    ans9 = ans3*1.00*(q6 - q4)
     error9 = abs(q9 - ans9)
     valid9 = error9 < 0.5
-    output$v9 <- renderText({ showValid(valid9, ans9, pin) })
+    output$v9 <- renderText({ showValid(valid9, ans9, pin, 0) })
     qlist["q9"] = q9
     
     q10 = as.numeric(input$q10)
     ans10 = ans9
     error10 = abs(q10 - ans10)
     valid10 = error10 < 0.5
-    output$v10 <- renderText({ showValid(valid10, ans10, pin) })
+    output$v10 <- renderText({ showValid(valid10, ans10, pin, 0) })
     qlist["q10"] = q10
     
     # calculate the heat capacity now
     q11 = as.numeric(input$q11)
-    ans11 = ans9/(q8*(q5 - q6))
+    ans11 = ans9/(ans8*(q5 - q6))
     error11 = abs(q11 - ans11)
     valid11 = error11 < 0.01
-    validText = showValid(valid11, ans11, pin)
+    
+    if(ans11 < 1) {
+      validText = showValid(valid11, ans11, pin, 3)
+    } else {
+      validText = showValid(valid11, ans11, pin, 2)
+    }
+    
     percentErrorText = percentError(0.900, q11)
     output$v11 <- renderText({ paste(validText, " / ", percentErrorText) })
     qlist["q11"] = q11

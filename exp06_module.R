@@ -133,7 +133,6 @@ exp06 <- function(input, output, session, pin) {
     DF1 = hot_to_r(input$hot1)
     checklist = checkTableDataExp06(DF1, pin, 1)
     output$vhot1 <- renderText({ checklist$text })
-    print(paste("Percent Water: ", avg.waterEXP06))
     
     # store the alum data
     qlist["q1"] = paste(DF1[1, c(2,3)], collapse = ",")
@@ -357,8 +356,8 @@ getHydratePercentErrorExp06 = function(unknown, avg.water, avg.water.inputed) {
   }
   
   avg.water = format(round(avg.water, 1), nsmall = 1)
-  percentError = paste("Answer:", avg.water, "Inputed % Water:", avg.water.inputed,
-                       percentError(actual.water, avg.water.inputed))
+  percentError = paste("Answer:", avg.water, "% / Inputted % Water:", avg.water.inputed,
+                       "Percent Error: ", percentError(actual.water, avg.water.inputed))
   
   return(percentError)
 }

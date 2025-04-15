@@ -131,7 +131,7 @@ exp07 <- function(input, output, session, pin) {
     ans3 = q2 - q1
     error3 = abs(q3 - ans3)
     valid3 = error3 < 0.5
-    output$v3 <- renderText({ showValid(valid3, ans3, pin) })
+    output$v3 <- renderText({ showValid(valid3, ans3, pin, 4) })
     qlist["q3"] = q3
     
     q4 = as.numeric(input$q4)
@@ -144,7 +144,7 @@ exp07 <- function(input, output, session, pin) {
     ans6 = q5 - q4
     error6 = abs(q6 - ans6)
     valid6 = error6 < 0.5
-    output$v6 <- renderText({ showValid(valid6, ans6, pin) })
+    output$v6 <- renderText({ showValid(valid6, ans6, pin, 4) })
     qlist["q6"] = q6
     
     q7 = as.numeric(input$q7)
@@ -157,29 +157,29 @@ exp07 <- function(input, output, session, pin) {
     ans9 = q8 - q7
     error9 = abs(q9 - ans9)
     valid9 = error9 < 0.5
-    output$v9 <- renderText({ showValid(valid9, ans9, pin) })
+    output$v9 <- renderText({ showValid(valid9, ans9, pin, 4) })
     qlist["q9"] = q9
     
-    # Carry out final calcuations
+    # Carry out final calculations
     q10 = as.numeric(input$q10)
     ans10 = ans9/100.1
     error10 = abs(q10 - ans10)
     valid10 = error10 < 0.0005
-    output$v10 <- renderText({ showValid(valid10, ans10, pin) })
+    output$v10 <- renderText({ showValid(valid10, ans10, pin, 6) })
     qlist["q10"] = q10
     
     q11 = as.numeric(input$q11)
     ans11 = ans10
     error11 = abs(q11 - ans11)
     valid11 = error11 == 0
-    output$v11 <- renderText({ showValid(valid11, ans11, pin) })
+    output$v11 <- renderText({ showValid(valid11, ans11, pin, 6) })
     qlist["q11"] = q11
     
     q12 = as.numeric(input$q12)
     ans12 = ans11*111.0
     error12 = abs(q12 - ans12)
     valid12 = error12 < 0.5
-    output$v12 <- renderText({ showValid(valid12, ans12, pin) })
+    output$v12 <- renderText({ showValid(valid12, ans12, pin, 4) })
     qlist["q12"] = q12
     
     q13 = as.numeric(input$q13)

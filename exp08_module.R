@@ -147,7 +147,7 @@ exp08 <- function(input, output, session, pin) {
     ans3 = q2 - q1
     error3 = abs(q3 - ans3)
     valid3 = error3 < 0.5
-    output$v3 <- renderText({ showValid(valid3, ans3, pin) })
+    output$v3 <- renderText({ showValid(valid3, ans3, pin, 4) })
     qlist["q3"] = q3
     
     q4 = as.numeric(input$q4)
@@ -157,35 +157,35 @@ exp08 <- function(input, output, session, pin) {
     ans5 = q4 - q1
     error5 = abs(q5 - ans5)
     valid5 = error5 < 0.5
-    output$v5 <- renderText({ showValid(valid5, ans5, pin) })
+    output$v5 <- renderText({ showValid(valid5, ans5, pin, 4) })
     qlist["q5"] = q5
     
     q6 = as.numeric(input$q6)
-    ans6 = q3/84.01
+    ans6 = ans3/84.01
     error6 = abs(q6 - ans6)
     valid6 = error6 < 0.0005
-    output$v6 <- renderText({ showValid(valid6, ans6, pin) })
+    output$v6 <- renderText({ showValid(valid6, ans6, pin, 5) })
     qlist["q6"] = q6
     
     q7 = as.numeric(input$q7)
     ans7 = ans6/2
     error7 = abs(q7 - ans7)
     valid7 = error7 < 0.0005
-    output$v7 <- renderText({ showValid(valid7, ans7, pin) })
+    output$v7 <- renderText({ showValid(valid7, ans7, pin, 6) })
     qlist["q7"] = q7
     
     q8 = as.numeric(input$q8)
     ans8 = ans7*105.99
     error8 = abs(q8 - ans8)
     valid8 = error8 < 0.05
-    output$v8 <- renderText({ showValid(valid8, ans8, pin) })
+    output$v8 <- renderText({ showValid(valid8, ans8, pin, 4) })
     qlist["q8"] = q8
     
     q9 = as.numeric(input$q9)
     ans9 = (ans5/ans8)*100.0
     error9 = abs(q9 - ans9)
     valid9 = error9 < 0.5
-    output$v9 <- renderText({ showValid(valid9, ans9, pin) })
+    output$v9 <- renderText({ showValid(valid9, ans9, pin, 1) })
     qlist["q9"] = q9
     
     # Part B Data and calculations
@@ -199,7 +199,7 @@ exp08 <- function(input, output, session, pin) {
     ans12 = q11 - q10
     error12 = abs(q12 - ans12)
     valid12 = error12 < 0.5
-    output$v12 <- renderText({ showValid(valid12, ans12, pin) })
+    output$v12 <- renderText({ showValid(valid12, ans12, pin, 4) })
     qlist["q12"] = q12
     
     q13 = as.numeric(input$q13)
@@ -209,35 +209,35 @@ exp08 <- function(input, output, session, pin) {
     ans14 = q11 - q13
     error14 = abs(q14 - ans14)
     valid14 = error14 < 0.5
-    output$v14 <- renderText({ showValid(valid14, ans14, pin) })
+    output$v14 <- renderText({ showValid(valid14, ans14, pin, 4) })
     qlist["q14"] = q14
     
     q15 = as.numeric(input$q15)
-    ans15 = q14/62.03
+    ans15 = ans14/62.03
     error15 = abs(q15 - ans15)
     valid15 = error15 < 0.0005
-    output$v15 <- renderText({ showValid(valid15, ans15, pin) })
+    output$v15 <- renderText({ showValid(valid15, ans15, pin, 6) })
     qlist["q15"] = q15
     
     q16 = as.numeric(input$q16)
     ans16 = ans15*2
     error16 = abs(q16 - ans16)
     valid16 = error16 < 0.0005
-    output$v16 <- renderText({ showValid(valid16, ans16, pin) })
+    output$v16 <- renderText({ showValid(valid16, ans16, pin, 5) })
     qlist["q16"] = q16
     
     q17 = as.numeric(input$q17)
     ans17 = ans16*84.01
     error17 = abs(q17 - ans17)
     valid17 = error17 < 0.5
-    output$v17 <- renderText({ showValid(valid17, ans17, pin) })
+    output$v17 <- renderText({ showValid(valid17, ans17, pin, 4) })
     qlist["q17"] = q17
     
     q18 = as.numeric(input$q18)
     ans18 = (ans17/ans12)*100.0
     error18 = abs(q18 - ans18)
     valid18 = error18 < 0.5
-    output$v18 <- renderText({ showValid(valid18, ans18, pin) })
+    output$v18 <- renderText({ showValid(valid18, ans18, pin,1) })
     qlist["q18"] = q18
     
     # indicate the percent error

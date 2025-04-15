@@ -93,7 +93,7 @@ exp12B <- function(input, output, session, pin) {
   observeEvent(input$check, {
     qlist = list()
     
-    # load intitial data
+    # load initial data
     q1 = as.numeric(input$q1)
     qlist["q1"] = q1
     
@@ -104,7 +104,7 @@ exp12B <- function(input, output, session, pin) {
     ans3 = q2 - q1
     error3 = abs(q3 - ans3)
     valid3 = error3 < 0.5
-    output$v3 <- renderText({ showValid(valid3, ans3, pin) })
+    output$v3 <- renderText({ showValid(valid3, ans3, pin, 4) })
     qlist["q3"] = q3
     
     q4 = as.numeric(input$q4)
@@ -117,28 +117,28 @@ exp12B <- function(input, output, session, pin) {
     ans6 = q5 - q4
     error6 = abs(q6 - ans6)
     valid6 = error6 < 0.0005
-    output$v6 <- renderText({ showValid(valid6, ans6, pin) })
+    output$v6 <- renderText({ showValid(valid6, ans6, pin, 4) })
     qlist["q6"] = q6
     
     q7 = as.numeric(input$q7)
     ans7 = (ans6/ans3)*100.0
     error7 = abs(q7 - ans7)
     valid7 = error7 < 0.5
-    output$v7 <- renderText({ showValid(valid7, ans7, pin) })
+    output$v7 <- renderText({ showValid(valid7, ans7, pin, 1) })
     qlist["q7"] = q7
     
     q8 = as.numeric(input$q8)
     ans8 = (12.0/31.8)*100.0
     error8 = abs(q8 - ans8)
     valid8 = error8 < 0.5
-    output$v8 <- renderText({ showValid(valid8, ans8, pin) })
+    output$v8 <- renderText({ showValid(valid8, ans8, pin, 1) })
     qlist["q8"] = q8
     
     q9 = as.numeric(input$q9)
     ans9 = (abs(ans8 - ans7)/ans8)*100.0
     error9 = abs(q9 - ans9)
     valid9 = error9 < 0.5
-    output$v9 <- renderText({ showValid(valid9, ans9, pin) })
+    output$v9 <- renderText({ showValid(valid9, ans9, pin, 1) })
     qlist["q9"] = q9
     
     # save to the database now

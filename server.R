@@ -48,8 +48,8 @@ shinyServer(function(input, output, session) {
       callModule(exp04B, "experiment4B", pin = userPin)
       callModule(exp04D, "experiment4D", pin = userPin)
       callModule(exp09B, "experiment9B", pin = userPin)
-      callModule(exp10, "experiment10B", pin = userPin)
-      callModule(exp11, "experiment11B", pin = userPin)
+      callModule(exp09, "experiment10B", pin = userPin)
+      callModule(exp10, "experiment11B", pin = userPin)
       callModule(exp12B, "experiment12B", pin = userPin)
       callModule(exp13B, "experiment13B", pin = userPin)
       

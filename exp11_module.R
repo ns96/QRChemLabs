@@ -48,7 +48,7 @@ exp11 <- function(input, output, session, pin) {
     })
   })
   
-  # render the datatable
+  # render the data table
   output$hot1 <- renderRHandsontable({
     if (!is.null(input$hot1)) {
       DF = hot_to_r(input$hot1)
@@ -93,7 +93,6 @@ exp11 <- function(input, output, session, pin) {
     qlist["q12"] = paste(DF1[12, c(2,3,4)], collapse = ",")
     qlist["q13"] = paste(DF1[13, c(2,3,4)], collapse = ",")
     qlist["q14"] = paste(DF1[14, c(2,3,4)], collapse = ",")
-    
     
     # save to the database now
     dbm = saveToDB(pin, "EXP11", qlist)

@@ -77,7 +77,7 @@ exp09 <- function(input, output, session, pin) {
   observeEvent(input$check, {
     qlist = list()
     
-    # load intitial data
+    # load initial data
     q1 = as.numeric(input$q1)
     qlist["q1"] = q1
     
@@ -94,29 +94,29 @@ exp09 <- function(input, output, session, pin) {
     ans5 = (q3 + q4)/2
     error5 = abs(q5 - ans5)
     valid5 = error5 < 0.5
-    output$v5 <- renderText({ showValid(valid5, ans5, pin) })
+    output$v5 <- renderText({ showValid(valid5, ans5, pin, 1) })
     qlist["q5"] = q5
     
     q6 = as.numeric(input$q6)
-    ans6 = (q2*q5)/q1
+    ans6 = (q2*ans5)/q1
     #print(cat("Q6 Debug", q1L, q5L, ans6))
     error6 = abs(q6 - ans6)
     valid6 = error6 < 0.0005
-    output$v6 <- renderText({ showValid(valid6, ans6, pin) })
+    output$v6 <- renderText({ showValid(valid6, ans6, pin, 3) })
     qlist["q6"] = q6
     
     q7 = as.numeric(input$q7)
     ans7 = 60.052
     error7 = abs(q7 - ans7)
     valid7 = error7 < 0.005
-    output$v7 <- renderText({ showValid(valid7, ans7, pin) })
+    output$v7 <- renderText({ showValid(valid7, ans7, pin, 3) })
     qlist["q7"] = q7
     
     q8 = as.numeric(input$q8)
     ans8 = ans6*ans7
     error8 = abs(q8 - ans8)
     valid8 = error8 < 0.05
-    output$v8 <- renderText({ showValid(valid8, ans8, pin) })
+    output$v8 <- renderText({ showValid(valid8, ans8, pin, 1) })
     qlist["q8"] = q8
     
     q9 = as.numeric(input$q9)

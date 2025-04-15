@@ -80,7 +80,7 @@ exp10UI <- function(id, lab.number = 10) {
 exp10 <- function(input, output, session, pin) {
   # load data for students
   observeEvent(input$load, {
-    q3 = round(runif(1, min=6, max=12), digits = 1)
+    q3 = round(runif(1, min=10, max=16), digits = 1)
     q3v = format(q3, nsmall = 1)
     updateTextInput(session, "q3", value = q3v)
     
@@ -92,7 +92,7 @@ exp10 <- function(input, output, session, pin) {
   observeEvent(input$check, {
     qlist = list()
     
-    # load intitial data
+    # load initial data
     q1 = as.numeric(input$q1)
     qlist["q1"] = q1
     
@@ -109,14 +109,14 @@ exp10 <- function(input, output, session, pin) {
     ans5 = ((q3 + q4)/2)/1000
     error5 = abs(q5 - ans5)
     valid5 = error5 < 0.005
-    output$v5 <- renderText({ showValid(valid5, ans5, pin) })
+    output$v5 <- renderText({ showValid(valid5, ans5, pin, 4) })
     qlist["q5"] = q5
     
     q6 = as.numeric(input$q6)
-    ans6 = q2*q5
+    ans6 = q2*ans5
     error6 = abs(q6 - ans6)
     valid6 = error6 < 0.0005
-    output$v6 <- renderText({ showValid(valid6, ans6, pin) })
+    output$v6 <- renderText({ showValid(valid6, ans6, pin, 5) })
     qlist["q6"] = q6
     
     q7 = as.numeric(input$q7)
@@ -129,45 +129,51 @@ exp10 <- function(input, output, session, pin) {
     ans9 = q7*q8
     error9 = abs(q9 - ans9)
     valid9 = error9 < 0.0005
-    output$v9 <- renderText({ showValid(valid9, ans9, pin) })
+    output$v9 <- renderText({ showValid(valid9, ans9, pin, 4) })
     qlist["q9"] = q9
     
     q10 = as.numeric(input$q10)
     ans10 = ans9 - ans6
     error10 = abs(q10 - ans10)
     valid10 = error10 < 0.0005
-    output$v10 <- renderText({ showValid(valid10, ans10, pin) })
+    output$v10 <- renderText({ showValid(valid10, ans10, pin, 4) })
     qlist["q10"] = q10
     
     q11 = as.numeric(input$q11)
     ans11 = ans10*0.5
     error11 = abs(q11 - ans11)
     valid11 = error11 < 0.0005
-    output$v11 <- renderText({ showValid(valid11, ans11, pin) })
+    output$v11 <- renderText({ showValid(valid11, ans11, pin, 4) })
     qlist["q11"] = q11
     
     q12 = as.numeric(input$q12)
     ans12 = ans11*58.32
     error12 = abs(q12 - ans12)
     valid12 = error12 < 0.005
-    output$v12 <- renderText({ showValid(valid12, ans12, pin) })
+    output$v12 <- renderText({ showValid(valid12, ans12, pin, 3) })
     qlist["q12"] = q12
     
     q13 = as.numeric(input$q13)
     ans13 = ans12*1000
     error13 = abs(q13 - ans13)
     valid13 = error13 < 5
-    output$v13 <- renderText({ showValid(valid13, ans13, pin) })
+    output$v13 <- renderText({ showValid(valid13, ans13, pin, 0) })
     qlist["q13"] = q13
     
     q14 = as.numeric(input$q14)
     qlist["q14"] = q14
     
     q15 = as.numeric(input$q15)
-    ans15 = (abs(q14 - q13)/q14)*100
+    ans15 = (abs(q14 - ans13)/q14)*100
     error15 = abs(q15 - ans15)
     valid15 = error15 < 0.5
-    output$v15 <- renderText({ showValid(valid15, ans15, pin) })
+    
+    if(ans15 < 10) {
+      output$v15 <- renderText({ showValid(valid15, ans15, pin, 2) })
+    } else {
+      output$v15 <- renderText({ showValid(valid15, ans15, pin, 1) })
+    }
+    
     qlist["q15"] = q15
     
     # save to the database now

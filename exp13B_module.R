@@ -105,14 +105,14 @@ exp13B <- function(input, output, session, pin) {
     ans3 = q2 - q1
     error3 = abs(q3 - ans3)
     valid3 = error3 < 0.5
-    output$v3 <- renderText({ showValid(valid3, ans3, pin) })
+    output$v3 <- renderText({ showValid(valid3, ans3, pin, 4) })
     qlist["q3"] = q3
     
     q4 = as.numeric(input$q4)
     ans4 = (0.500/ans3)*100.0
     error4 = abs(q4 - ans4)
     valid4 = error4 < 0.5
-    output$v4 <- renderText({ showValid(valid4, ans4, pin) })
+    output$v4 <- renderText({ showValid(valid4, ans4, pin, 1) })
     qlist["q4"] = q4
     
     q5 = as.numeric(input$q5)
@@ -122,7 +122,7 @@ exp13B <- function(input, output, session, pin) {
     ans6 = q5/0.500
     error6 = abs(q6 - ans6)
     valid6 = error6 < 0.5
-    output$v6 <- renderText({ showValid(valid6, ans6, pin) })
+    output$v6 <- renderText({ showValid(valid6, ans6, pin, 1) })
     qlist["q6"] = q6
     
     q7 = as.numeric(input$q7)
@@ -135,7 +135,7 @@ exp13B <- function(input, output, session, pin) {
     ans9 = (500.0/q5)*q8
     error9 = abs(q9 - ans9)
     valid9 = error9 < 0.5
-    output$v9 <- renderText({ showValid(valid9, ans9, pin) })
+    output$v9 <- renderText({ showValid(valid9, ans9, pin, 1) })
     qlist["q9"] = q9
     
     # save to the database now

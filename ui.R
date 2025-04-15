@@ -14,7 +14,7 @@ library(titrationCurves)
 
 # Define UI for application that display chemistry tables
 shinyUI(dashboardPage(
-  dashboardHeader(title = "QRChem Labs v0.7.6 (04/14/2025)",
+  dashboardHeader(title = "QRChem Labs v0.7.6 (04/15/2025)",
                   titleWidth = 325),
   
   dashboardSidebar(

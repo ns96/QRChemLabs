@@ -48,7 +48,7 @@ exp13UI <- function(id) {
 
 # Server code
 exp13 <- function(input, output, session, pin) {
-  # render the datatable for alum hydate
+  # render the datatable for the different molecules
   output$hot1 <- renderRHandsontable({
     if (!is.null(input$hot1)) {
       DF = hot_to_r(input$hot1)
@@ -182,39 +182,39 @@ checkTableDataExp13 = function(DF, pin) {
   return(HTML(validText))                  
 }
 
-# check the molecular information entered against the actuals answers
-checkDataExp13 = function(DF, rn, answers, pin) {
+# check the molecular information entered against the actual answers
+checkDataExp13 = function(DF, row.number, answers, pin) {
   text.color = '<p style="color:red;">'
   
   valid.BP = 'INVALID'
-  if(DF[rn, 2] == answers[1]) {
+  if(DF[row.number, 2] == answers[1]) {
     valid.BP = 'VALID'
     exp13.correct <<- exp13.correct + 1
     text.color = '<p style="color:blue;">'
   }
   
   valid.LP = 'INVALID'
-  if(DF[rn, 3] == answers[2]) {
+  if(DF[row.number, 3] == answers[2]) {
     valid.LP = 'VALID'
     exp13.correct <<- exp13.correct + 1
     text.color = '<p style="color:blue;">'
   }
   
   valid.MG = 'INVALID'
-  if(DF[rn, 4] == answers[3]) {
+  if(DF[row.number, 4] == answers[3]) {
     valid.MG = 'VALID'
     exp13.correct <<- exp13.correct + 1
     text.color = '<p style="color:blue;">'
   }
   
   valid.MP = 'INVALID'
-  if(DF[rn, 5] == answers[4]) {
+  if(DF[row.number, 5] == answers[4]) {
     valid.MP = 'VALID'
     exp13.correct <<- exp13.correct + 1
     text.color = '<p style="color:blue;">'
   }
   
-  validText = paste(DF[rn, 1], '|| Bonding Pairs:', valid.BP, 
+  validText = paste(DF[row.number, 1], '|| Bonding Pairs:', valid.BP, 
                     '/ Lone Pairs:', valid.LP, '/ Geometry:', valid.MG, 
                     '/ Polarity:', valid.MP)
   

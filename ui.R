@@ -11,11 +11,11 @@ library(shinydashboard)
 library(plotly)
 library(rhandsontable)
 library(titrationCurves)
+library(shinybusy)
 
 # Define UI for application that display chemistry tables
 shinyUI(dashboardPage(
-  dashboardHeader(title = "QRChem Labs v0.7.7 (04/16/2025)",
-                  titleWidth = 325),
+  dashboardHeader(title = "QRChem Labs v0.7.7 (04/16/2025)", titleWidth = 325),
   
   dashboardSidebar(
     selectInput("courseCode", "Course Code:", courseCodes),
@@ -74,6 +74,8 @@ shinyUI(dashboardPage(
   ),
   
   dashboardBody(
+    add_busy_bar(color = "#FF0000"), # automatically shown when app is busy
+    
     tabItems(
       # First tab content
       tabItem(tabName = "experiment1",

@@ -59,6 +59,17 @@ exp11CUI <- function(id) {
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/fPoo_o6TCGc" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
       br(),
       a("Solubility Product Constants near 25 degC", target="_blank", href="https://www.chm.uri.edu/weuler/chm112/refmater/KspTable.html")
+    ),
+    
+    # add row to send prompts to google gemini or other LLM API
+    fluidRow(
+      # add drop down for selecting the llm model
+      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
+      
+      # add slider input for selecting temperature
+      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
+      
+      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
     )
   )
 }
@@ -87,8 +98,7 @@ exp11C <- function(input, output, session, pin) {
     }
   )
   
-  # Display the pH data plot and add line at pH nine
-  # https://stackoverflow.com/questions/34093169/horizontal-vertical-line-in-plotly
+  # Display the pH data plots
   output$plot1 <- renderPlotly({
     x_data = getPlotDataExp11C('Trial1_X')
     y_data = getPlotDataExp11C('Trial1_Y')
@@ -132,6 +142,27 @@ exp11C <- function(input, output, session, pin) {
     
     fig = getLinePlot(df, "Second Derivative", "Volume HCl (mL)", "pH", smooth = FALSE) %>%
       layout(showlegend = FALSE)
+  })
+  
+  # handle llm generate button selection
+  observeEvent(input$llmGenerate, {
+    # get the selected model and temperature
+    model = input$llmModel
+    temp = input$llmTemp
+    
+    # get the data from the table and covert to csv string
+    DF = hot_to_r(input$hot1)
+    csvString = paste(capture.output(write.csv(DF, row.names = FALSE)), collapse = "\n")
+    
+    # create the prompt now
+    abstractPrompt = paste("Generate a 200-300 word scientific abstract about DETERMINING THE KSP OF CALCIUM HYDROXIDE for data below.",
+                           "Only return the Abstract text.",
+                           "Here is the csv data:\n", csvString)
+    
+    print(abstractPrompt)
+    
+    # display the abstract after call the LLM API
+    displayAbstract(abstractPrompt, model, temp)
   })
 }
 

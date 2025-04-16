@@ -88,7 +88,7 @@ exp01C <- function(input, output, session, pin) {
   
   # handle llm generate button selection
   observeEvent(input$llmGenerate, {
-    # get the selected model and temperature. Model is not used for now
+    # get the selected model and temperature
     model = input$llmModel
     temp = input$llmTemp
     
@@ -104,27 +104,8 @@ exp01C <- function(input, output, session, pin) {
     
     print(abstractPrompt)
     
-    # generate the abstract using the selected model and temperature
-    if(model == "Google Gemini") {
-      # use google gemini
-      abstract = askGemini(prompt = abstractPrompt, temperature = temp)
-    } else if(model == "ChatGPT") {
-      # use chatgpt
-      abstract = askChatGPT(prompt = abstractPrompt, temperature = temp)
-    } else if(model == "DeepSeek") {
-      # use deep seek
-      abstract = askDeepSeek(prompt = abstractPrompt, temperature = temp)
-    } else {
-      abstract = "Model not supported ..."
-    }
-    
-    # display the generated abstract
-    showModal(modalDialog(
-      title = paste("Generated Abstract --", model),
-      abstract,
-      easyClose = TRUE,
-      footer = NULL
-    ))
+    # display the abstract after call the LLM API
+    displayAbstract(abstractPrompt, model, temp)
   })
 }
 

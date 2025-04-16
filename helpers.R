@@ -720,6 +720,42 @@ askDeepSeek <- function(prompt, api_key=llmKeys$deepseek, model = "deepseek-chat
   return(parsed$choices[[1]]$message$content)
 }
 
+# function to send prompt to LLM API and display Abstract
+displayAbstract <- function(abstractPrompt, model, temp) {
+  # check if to use google gemini
+  if(model == "Google Gemini") {
+    response = askGemini(abstractPrompt, temperature = temp)
+  } else if(model == "ChatGPT") {
+    response = askChatGPT(abstractPrompt, temperature = temp)
+  } else if(model == "DeepSeek") {
+    response = askDeepSeek(abstractPrompt, temperature = temp)
+  } else {
+    response = "Model not supported ..."
+  }
+  
+  # get the word count of the response
+  wordCount = countWords(response)
+  response = paste0("Word Count: ", wordCount, " || ", response)
+  
+  # display the generated abstract
+  showModal(modalDialog(
+    title = paste("Generated Abstract --", model),
+    response,
+    easyClose = TRUE,
+    footer = NULL
+  ))
+}
+
+# Function to count words in a string of text
+countWords <- function(text) {
+  # Remove leading/trailing whitespace and split by one or more spaces
+  words <- unlist(strsplit(trimws(text), "\\s+"))
+  
+  # Return the number of words
+  return(length(words))
+}
+
+
 # ************************************************
 # Interesting links for this project
 # Reactive variables to get around scope of reactive/observer block of code

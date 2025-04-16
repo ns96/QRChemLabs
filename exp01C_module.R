@@ -40,6 +40,17 @@ exp01CUI <- function(id) {
       a("YouTube -- Electrolyte and nonelectrolyte solutions", target="_blank", href="https://www.youtube.com/watch?v=jg2uJFa8EVo"),
       br(),
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/jg2uJFa8EVo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+    ),
+    
+    # add row to send prompts to google gemini or other LLM API
+    fluidRow(
+      # add drop down for selecting the llm model
+      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
+      
+      # add slider input for selecting temperature
+      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
+      
+      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
     )
   )
 }
@@ -74,6 +85,47 @@ exp01C <- function(input, output, session, pin) {
       write.csv(DF, file, row.names = FALSE)
     }
   )
+  
+  # handle llm generate button selection
+  observeEvent(input$llmGenerate, {
+    # get the selected model and temperature. Model is not used for now
+    model = input$llmModel
+    temp = input$llmTemp
+    
+    # get the data from the table and covert to csv string
+    DF = hot_to_r(input$hot1)
+    csvString = paste(capture.output(write.csv(DF, row.names = FALSE)), collapse = "\n")
+    
+    # create the prompt now
+    abstractPrompt = paste("Generate a 200-300 word scientific abstract about ELECTROLYTES AND NON-ELECTROLYTES for data below.",
+    "Also calculate the conductivty of group A chemicals using the Kohlrausch Law assuming 1M concentration and include those values in the abstract as well.",
+    "Only return the Abstract text.",
+    "Here is the csv data:\n", csvString)
+    
+    print(abstractPrompt)
+    
+    # generate the abstract using the selected model and temperature
+    if(model == "Google Gemini") {
+      # use google gemini
+      abstract = askGemini(prompt = abstractPrompt, temperature = temp)
+    } else if(model == "ChatGPT") {
+      # use chatgpt
+      abstract = askChatGPT(prompt = abstractPrompt, temperature = temp)
+    } else if(model == "DeepSeek") {
+      # use deep seek
+      abstract = askDeepSeek(prompt = abstractPrompt, temperature = temp)
+    } else {
+      abstract = "Model not supported ..."
+    }
+    
+    # display the generated abstract
+    showModal(modalDialog(
+      title = paste("Generated Abstract --", model),
+      abstract,
+      easyClose = TRUE,
+      footer = NULL
+    ))
+  })
 }
 
 # function to get the initial data for table 1

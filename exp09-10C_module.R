@@ -57,13 +57,24 @@ exp0910CUI <- function(id) {
     
     fluidRow(
       img(src='images/phenolphthalein.png')  
+    ),
+    
+    # add row to send prompts to google gemini or other LLM API
+    fluidRow(
+      # add drop down for selecting the llm model
+      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
+      
+      # add slider input for selecting temperature
+      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
+      
+      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
     )
   )
 }
 
 # Server code
 exp0910C <- function(input, output, session, pin) {
-  values <- reactiveValues(data = getTableDataExp0910C())
+  values <- reactiveValues(data = getTableDataExp0910C(pin))
   
   observe({
     if(!is.null(input$hot1)) {
@@ -71,84 +82,129 @@ exp0910C <- function(input, output, session, pin) {
     }
   })
   
-  # render the datatable
+  # render the data table
   output$hot1 <- renderRHandsontable({
     rhandsontable(values$data, stretchH = "all", readOnly = FALSE)
   })
   
-  # # Download the data to users computer as csv
-  # output$downloadData <- downloadHandler(
-  #   filename = function() {
-  #     paste0("Experiment0910_", pin, ".csv")
-  #   },
-  #   content = function(file) {
-  #     DF = hot_to_r(input$hot1)
-  #     write.csv(DF, file, row.names = FALSE)
-  #   }
-  # )
-  
-  # Display the ph data plot and add line at pH nine
+  # Display the pH data plot and add line at pH nine
   # https://stackoverflow.com/questions/34093169/horizontal-vertical-line-in-plotly
   output$plot1 <- renderPlotly({
-    x_data = getPlotDataExp0910C('SA_SBX')
-    y_data = getPlotDataExp0910C('SA_SBY')
+    if(!exists("exp0910CPlot1DF")) {
+      x_data = getPlotDataExp0910C('SA_SBX')
+      y_data = getPlotDataExp0910C('SA_SBY')
+      
+      exp0910CPlot1DF <<- data.frame(x_data, y_data)
+    } else {
+      x_data = exp0910CPlot1DF[[1]]
+      y_data = exp0910CPlot1DF[[2]]
+    }
+    
     x_min = min(x_data)
     y_min = min(y_data) - 0.5
     
     df = data.frame(x_data, y_data)
-    exp0910CPlot1DF <<- df
+    
+    # get time at equivalence point
+    if(is.numeric(values$data[1,3])) {
+      eq_time = values$data[1,3]
+    } else {
+      eq_time = 250
+    }
     
     fig = getLinePlot(df, "HCl", "Time (seconds)", "pH", smooth = FALSE) %>%
       add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
-      add_segments(x = 250, xend = 250, y = y_min, yend = 12) %>%
+      add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
       layout(showlegend = FALSE)
   })
   
   # Display the plot # 2
   output$plot2 <- renderPlotly({
-    x_data = getPlotDataExp0910C('WA_SBX')
-    y_data = getPlotDataExp0910C('WA_SBY')
+    if(!exists("exp0910CPlot2DF")) {
+      x_data = getPlotDataExp0910C('WA_SBX')
+      y_data = getPlotDataExp0910C('WA_SBY')
+      
+      exp0910CPlot2DF <<- data.frame(x_data, y_data)
+    } else {
+      x_data = exp0910CPlot2DF[[1]]
+      y_data = exp0910CPlot2DF[[2]]
+    }
+    
     x_min = min(x_data)
     y_min = min(y_data) - 0.5
         
     df = data.frame(x_data, y_data)
-    exp0910CPlot2DF <<- df
+    
+    # get time at equivalence point
+    if(is.numeric(values$data[2,3])) {
+      eq_time = values$data[2,3]
+    } else {
+      eq_time = 250
+    }
     
     fig = getLinePlot(df, "Acetic Acid", "Time (seconds)", "pH", smooth = FALSE) %>%
       add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
-      add_segments(x = 250, xend = 250, y = y_min, yend = 12) %>%
+      add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
       layout(showlegend = FALSE)
   })
   
   # Display the plot # 3
   output$plot3 <- renderPlotly({
-    x_data = getPlotDataExp0910C('SA_WBX')
-    y_data = getPlotDataExp0910C('SA_WBY')
+    if(!exists("exp0910CPlot3DF")) {
+      x_data = getPlotDataExp0910C('SA_WBX')
+      y_data = getPlotDataExp0910C('SA_WBY')
+      
+      exp0910CPlot3DF <<- data.frame(x_data, y_data)
+    } else {
+      x_data = exp0910CPlot3DF[[1]]
+      y_data = exp0910CPlot3DF[[2]]
+    }
+      
     x_min = min(x_data)
     y_min = min(y_data) - 0.5
     
     df = data.frame(x_data, y_data)
-    exp0910CPlot3DF <<- df
+    
+    # get time at equivalence point
+    if(is.numeric(values$data[3,3])) {
+      eq_time = values$data[3,3]
+    } else {
+      eq_time = 250
+    }
     
     fig = getLinePlot(df, "HCl", "Time (seconds)", "pH", smooth = FALSE) %>%
       add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
-      add_segments(x = 250, xend = 250, y = y_min, yend = 12) %>%
+      add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
       layout(showlegend = FALSE)
   })
   
   # Display the plot # 4
   output$plot4 <- renderPlotly({
-    x_data = getPlotDataExp0910C('WA_WBX')
-    y_data = getPlotDataExp0910C('WA_WBY')
+    if(!exists("exp0910CPlot4DF")) {
+      x_data = getPlotDataExp0910C('WA_WBX')
+      y_data = getPlotDataExp0910C('WA_WBY')
+      
+      exp0910CPlot4DF <<- data.frame(x_data, y_data)
+    } else {
+      x_data = exp0910CPlot4DF[[1]]
+      y_data = exp0910CPlot4DF[[2]]
+    }
+      
     x_min = min(x_data)
     y_min = min(y_data) - 0.5
     
     df = data.frame(x_data, y_data)
-    exp0910CPlot4DF <<- df
+    
+    # get time at equivalence point
+    if(is.numeric(values$data[4,3])) {
+      eq_time = values$data[4,3]
+    } else {
+      eq_time = 250
+    }
     
     fig = getLinePlot(df, "Acetic Acid", "Time (seconds)", "pH", smooth = FALSE) %>%
       add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
-      add_segments(x = 250, xend = 250, y = y_min, yend = 12) %>%
+      add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
       layout(showlegend = FALSE)
   })
   
@@ -207,9 +263,31 @@ exp0910C <- function(input, output, session, pin) {
       write.csv(DF, file, row.names = FALSE)
     }
   )
+  
+  # handle llm generate button selection
+  observeEvent(input$llmGenerate, {
+    # get the selected model and temperature
+    model = input$llmModel
+    temp = input$llmTemp
+    
+    # get the data from the table and covert to csv string
+    DF = hot_to_r(input$hot1)
+    csvString = paste(capture.output(write.csv(DF, row.names = FALSE)), collapse = "\n")
+    
+    # create the prompt now
+    abstractPrompt = paste("Generate a 200-300 word scientific abstract about ",
+                           "TITRATION CURVES OF STRONG AND WEAK ACIDS AND BASES",
+                           "Only return the Abstract text.",
+                           "Here is the results csv data:\n", csvString)
+    
+    print(abstractPrompt)
+    
+    # display the abstract after call the LLM API
+    displayAbstract(abstractPrompt, model, temp)
+  })
 }
 
-# function to return the colomn data
+# function to return the column data
 getPlotDataExp0910C = function(columnName) {
   if (!exists("exp0910CDF")) {
     getDataExp0910C()    
@@ -220,13 +298,13 @@ getPlotDataExp0910C = function(columnName) {
   
   # convert time to seconds
   if(grepl("X", columnName, fixed = TRUE)) {
-    n_data = n_data + sample(0:25, 1) # add some random number
+    n_data = n_data + sample(0:25, 1) # Time Data
     n_data = (n_data/max(n_data))*exp0910C.MaxTime
   } else {
-    n_data = n_data + runif(1, 0, 0.5) # add some random data
+    n_data = n_data + runif(1, 0, 0.5) # pH Data
   }
   
-  # store the data list incase we need to export
+  # store the data list in case we need to export
   # https://stackoverflow.com/questions/20133344/find-closest-value-in-a-vector-with-binary-search
   exp0910CL[[columnName]] <<- n_data
   
@@ -240,7 +318,7 @@ getDataExp0910C = function() {
 }
 
 # function to get the initial data
-getTableDataExp0910C = function() {
+getTableDataExp0910C = function(pin) {
   if (!exists("exp0910CDF")) {
     getDataExp0910C()    
   }
@@ -251,6 +329,15 @@ getTableDataExp0910C = function() {
   v4 = c(" ", " ", " ", " ")
   v5 = c(" ", " ", " ", " ")
   v6 = c(" ", " ", " ", " ")
+  
+  # add some data to table if admin
+  if(isAdminUser(pin)) {
+    v2 = c(181, 184, 198, 197)
+    v3 = c(180, 184, 186, 185)
+    v4 = c(7.0, 8.0, 6.5, 7.4)
+    v5 = c(2.4, 3.2, 2.5, 3.3)
+    v6 = c(12.0, 12.0, 10.4, 10.2)
+  }
   
   df = data.frame(v1, v2, v3, v4, v5, v6, stringsAsFactors = FALSE)
   

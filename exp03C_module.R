@@ -36,6 +36,17 @@ exp03CUI <- function(id) {
       a("YouTube -- Calibration Curve With Nickel (II) Sulfate", target="_blank", href="https://youtu.be/V6eDXnISx5s"),
       br(),
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/V6eDXnISx5s" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+    ), 
+    
+    # add row to send prompts to google gemini or other LLM API
+    fluidRow(
+      # add drop down for selecting the llm model
+      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
+      
+      # add slider input for selecting temperature
+      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
+      
+      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
     )
   )
 }
@@ -54,6 +65,19 @@ exp03C <- function(input, output, session, pin) {
     output$plot1 <- renderPlotly({
       x = c(0, 0.08, 0.16, 0.24, 0.32, 0.40) 
       y = knownExp03C
+      
+      if(isAdminUser(pin)) {
+        fit.numbers = doLinearFit(x, y)
+        unknown.Conc = (unknownExp03C + fit.numbers$intercept) / fit.numbers$slope 
+        
+        resultsExp03C <<- paste0('Fit Results: Intercept ->', fit.numbers$intercept, 
+                         ', Slope ->', fit.numbers$slope, ', R-squared ->', fit.numbers$rsquare,
+                         ', Unknown Absorbance ->', unknownExp03C,
+                         ', Unknown Concentration ->', unknown.Conc)
+        
+        output$vhot1 <- renderText({ resultsExp03C })
+      }
+      
       p.df = data.frame(x, y)
       getRegressionPlot(p.df, "Standard Plot", "NiSO4 Concentration (mol/L)", "Absorbance")
     })
@@ -71,6 +95,29 @@ exp03C <- function(input, output, session, pin) {
       write.csv(DF, file, row.names = FALSE)
     }
   )
+  
+  # handle llm generate button selection
+  observeEvent(input$llmGenerate, {
+    # get the selected model and temperature
+    model = input$llmModel
+    temp = input$llmTemp
+    
+    # get the data from the table and covert to csv string
+    DF = hot_to_r(input$hot1)
+    csvString = paste(capture.output(write.csv(DF, row.names = FALSE)), collapse = "\n")
+    
+    # create the prompt now
+    abstractPrompt = paste("Generate a 200-300 word scientific abstract about ",
+                           "DETERMINING THE CONCENTRATION OF AN UNKNOWN Nickel (II) Sulfate SOLUTION USING BEER'S LAW",
+                           "Make sure to do linear fit of data and use the resulting equation to calculate concentration of unknown.",
+                           "Only return the Abstract text.",
+                           "Here is the csv data:\n", csvString)
+    
+    print(abstractPrompt)
+    
+    # display the abstract after call the LLM API
+    displayAbstract(abstractPrompt, model, temp)
+  })
 }
 
 # function to get the initial data for table 1

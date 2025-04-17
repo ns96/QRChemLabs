@@ -60,11 +60,17 @@ exp07CUI <- function(id) {
       a("YouTube -- Experiment", target="_blank", href="https://www.youtube.com/watch?v=iz3lbZ6ukQI"),
       br(),
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/iz3lbZ6ukQI" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+    ),
+    
+    # add row to send prompts to google gemini or other LLM API
+    fluidRow(
+      # add drop down for selecting the llm model
+      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
       
-      #add button to check data
-      #column(4, actionButton(ns("check"), "Check Input Data")),
-      #column(8, span(textOutput(ns("dbm")), style="color:green")),
-      #column(6, actionButton(ns("view"), "View Saved Data"))
+      # add slider input for selecting temperature
+      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
+      
+      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
     )
   )
 }
@@ -90,7 +96,7 @@ exp07C <- function(input, output, session, pin) {
       df = getResultsExp07C()    
       
       # get the average
-      avgKc = round(rowMeans(df)[6])
+      avgKc <<- round(rowMeans(df)[6])
       output$vhot2 <- renderText({paste("Average Kc:", avgKc)})
       
       rhandsontable(df, rowHeaderWidth = 100, stretchH = "all") %>%
@@ -126,6 +132,34 @@ exp07C <- function(input, output, session, pin) {
       write.csv(DF, file, row.names = FALSE)
     }
   )
+  
+  # handle llm generate button selection
+  observeEvent(input$llmGenerate, {
+    # get the selected model and temperature
+    model = input$llmModel
+    temp = input$llmTemp
+    
+    # get the data from the table and covert to csv string
+    DF = hot_to_r(input$hot1)
+    csvString1 = paste(capture.output(write.csv(DF, row.names = FALSE)), collapse = "\n")
+    
+    DF = hot_to_r(input$hot2)
+    csvString2 = paste(capture.output(write.csv(DF, row.names = FALSE)), collapse = "\n")
+    
+    # create the prompt now
+    abstractPrompt = paste("Generate a 200-300 word scientific abstract about",
+                           "DETERMINING THE Kc OF IRON THIOCYANATE using colorimetric data.",
+                           "Only return the Abstract text.",
+                           "The temperature of the solution is: ", Exp07C.Temperature, "\n",
+                           "The Average Kc value is: ", avgKc, "\n",
+                           "Here is the colorimetric data: ", csvString1, "\n",
+                           "Here is the Kc calculations data:\n", csvString2)
+    
+    print(abstractPrompt)
+    
+    # display the abstract after call the LLM API
+    displayAbstract(abstractPrompt, model, temp)
+  })
 }
 
 # calculate Kc for a trial

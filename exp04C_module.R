@@ -46,6 +46,17 @@ exp04CUI <- function(id) {
       a("YouTube -- Heat of Fusion of Water Lab", target="_blank", href="https://youtu.be/rTERi2Tc-Io"),
       br(),
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/rTERi2Tc-Io" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+    ),
+    
+    # add row to send prompts to google gemini or other LLM API
+    fluidRow(
+      # add drop down for selecting the llm model
+      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
+      
+      # add slider input for selecting temperature
+      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
+      
+      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
     )
   )
 }
@@ -111,6 +122,32 @@ exp04C <- function(input, output, session, pin) {
       write.csv(DF, file, row.names = FALSE)
     }
   )
+  
+  # handle llm generate button selection
+  observeEvent(input$llmGenerate, {
+    # get the selected model and temperature
+    model = input$llmModel
+    temp = input$llmTemp
+    
+    # get the data from the table and covert to csv string
+    DF = hot_to_r(input$hot1)
+    csvString1 = paste(capture.output(write.csv(DF, row.names = FALSE)), collapse = "\n")
+    
+    DF = hot_to_r(input$hot2)
+    csvString2 = paste(capture.output(write.csv(DF, row.names = FALSE)), collapse = "\n")
+    
+    # create the prompt now
+    abstractPrompt = paste("Generate a 200-300 word scientific abstract about ",
+                           "calculating the HEAT OF FUSION OF ICE",
+                           "Only return the Abstract text.",
+                           "Here is the mesurements csv data:\n", csvString1, "\n", 
+                           "Here is the results csv data:\n", csvString2)
+    
+    print(abstractPrompt)
+    
+    # display the abstract after call the LLM API
+    displayAbstract(abstractPrompt, model, temp)
+  })
 }
 
 # function to get the initial data for table 1

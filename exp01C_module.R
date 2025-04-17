@@ -1,5 +1,5 @@
 # Experiment 1C UI/Server module code
-# Module used for developement and testing
+# Module used for development and testing
 #
 # https://shiny.rstudio.com/articles/modules.html
 # 

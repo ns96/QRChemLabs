@@ -142,7 +142,7 @@ doLinearFit <- function(x, y) {
   fit.numbers$slope = summary(fit)$coefficients[2,1]
   fit.numbers$rsquare = summary(fit)$r.square
   
-  cat('Fit Results:', fit.numbers$intercept, fit.numbers$slope, fit.numbers$rsquare, "\n")
+  #cat('Fit Results:', fit.numbers$intercept, fit.numbers$slope, fit.numbers$rsquare, "\n")
   return(fit.numbers)
 }
 

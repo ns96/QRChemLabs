@@ -15,6 +15,9 @@ exp06CUI <- function(id) {
     
     fluidRow(
       box(width = 4, title = "Colorimeter Data", status = "primary",
+          # add input for setting the temperature
+          textInput(ns("temp"), "Temperature (C):", value = 23.5),
+          
           # the data version
           span(textOutput(ns("vhot1")), style="color:blue"),
           
@@ -55,11 +58,17 @@ exp06CUI <- function(id) {
       a("YouTube -- Using Excel for Analysis", target="_blank", href="https://www.youtube.com/watch?v=da-G2BxGEVE"),
       br(),
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/da-G2BxGEVE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
+    ),
+    
+    # add row to send prompts to google gemini or other LLM API
+    fluidRow(
+      # add drop down for selecting the llm model
+      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
       
-      #add button to check data
-      #column(4, actionButton(ns("check"), "Check Input Data")),
-      #column(8, span(textOutput(ns("dbm")), style="color:green")),
-      #column(6, actionButton(ns("view"), "View Saved Data"))
+      # add slider input for selecting temperature
+      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
+      
+      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
     )
   )
 }
@@ -128,10 +137,20 @@ exp06C <- function(input, output, session, pin) {
         half.life = 0
       }
       
+      # store the results for sending to llm for abstract generation
+      resultsExp06CDF <<- data.frame(
+        "Temperature (C)" = input$temp,
+        "Reaction Order" = reactionOrder,
+        "Slope" = fit.numbers$slope,
+        "R^2" = fit.numbers$rsquare,
+        "Rate Constant (M/s)" = rate.constant,
+        "Half Life (s)" = half.life
+      )
+      
       output$v1 <- renderText({ 
-        paste("Slope:", formatC(fit.numbers$slope, format="f", digits = 5),
+        paste("Slope:", formatC(fit.numbers$slope, format="f", digits = 6),
               " || R^2:", formatC(fit.numbers$rsquare, format = "f", digits = 3),
-              " || k(M/s):", formatC(rate.constant, format="f", digits = 5), 
+              " || k(M/s):", formatC(rate.constant, format="f", digits = 6), 
               " || Half Life (s):", formatC(half.life, format = "d"))
       })
     } else {
@@ -171,6 +190,28 @@ exp06C <- function(input, output, session, pin) {
     ))
     
     cat("View Data -- EXP06C", "\n")
+  })
+  
+  # handle llm generate button selection
+  observeEvent(input$llmGenerate, {
+    # get the selected model and temperature
+    model = input$llmModel
+    temp = input$llmTemp
+    
+    # get the data from the table and covert to csv string
+    DF = resultsExp06CDF
+    csvString = paste(capture.output(write.csv(DF, row.names = FALSE)), collapse = "\n")
+    
+    # create the prompt now
+    abstractPrompt = paste("Generate a 200-300 word scientific abstract about the ",
+                           "Rate Law Determination of the Crystal Violet Reaction With NaOH using Colorimeter Data.",
+                           "Only return the Abstract text.",
+                           "Here is the csv data:\n", csvString)
+    
+    print(abstractPrompt)
+    
+    # display the abstract after call the LLM API
+    displayAbstract(abstractPrompt, model, temp)
   })
 }
 

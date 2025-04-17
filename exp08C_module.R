@@ -49,11 +49,15 @@ exp08CUI <- function(id) {
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/1eqVZ2EqhRc" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
     ),
     
+    # add row to send prompts to google gemini or other LLM API
     fluidRow(
-      #add button to check data
-      #column(4, actionButton(ns("check"), "Check Input Data")),
-      #column(8, span(textOutput(ns("dbm")), style="color:green")),
-      #column(6, actionButton(ns("view"), "View Saved Data"))
+      # add drop down for selecting the llm model
+      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
+      
+      # add slider input for selecting temperature
+      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
+      
+      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
     )
   )
 }
@@ -114,8 +118,31 @@ exp08C <- function(input, output, session, pin) {
       write.csv(DF, file, row.names = FALSE)
     }
   )
+  
+  # handle llm generate button selection
+  observeEvent(input$llmGenerate, {
+    # get the selected model and temperature
+    model = input$llmModel
+    temp = input$llmTemp
+    
+    # get the data from the table and covert to csv string
+    DF = hot_to_r(input$hot1)
+    csvString = paste(capture.output(write.csv(DF, row.names = FALSE)), collapse = "\n")
+    
+    # create the prompt now
+    abstractPrompt = paste("Generate a 200-300 word scientific abstract about the ",
+    "ACID DISSOCIATION CONSTANT OF ACETIC ACID and Concentration of Acitic Acid In Vinegar.",
+    "Only return the Abstract text.",
+    "Here are the main results: ", resultsExp08C, "\n",
+    "Here is the csv data:\n", csvString)
+    
+    print(abstractPrompt)
+    
+    # display the abstract after call the LLM API
+    displayAbstract(abstractPrompt, model, temp)
+  })
 }
-# check to see if the colume entered is correct
+# check to see if the column entered is correct
 isCorrectVolumeExp08C = function(assignedConc, volumeAceticAcid) {
   correctVolume = (assignedConc*100)/2.0
   cat("EXP08C Correct Volume (mL):", correctVolume, volumeAceticAcid, "\n")
@@ -157,7 +184,8 @@ getResultsExp08C = function(data) {
   
   resultsExp08C <<- paste("Average Ka:", avgKa.F, 
                           ", Vinegar H+:", vinegarH.F,
-                          ", Vinegar (M):", vinegarM.F,
+                          ", Calculated Vinegar (M):", vinegarM.F,
+                          ", Actual Vinegar (M): 0.833",
                           "/", perror)
   
   # return the calculated Ka

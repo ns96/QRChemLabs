@@ -49,16 +49,8 @@ exp08CUI <- function(id) {
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/1eqVZ2EqhRc" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
     ),
     
-    # add row to send prompts to google gemini or other LLM API
-    fluidRow(
-      # add drop down for selecting the llm model
-      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
-      
-      # add slider input for selecting temperature
-      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
-      
-      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
-    )
+    # add UI elements to send prompts to LLM API for Abstract generation
+    getLLMPromptUIRow(ns)
   )
 }
 
@@ -139,7 +131,7 @@ exp08C <- function(input, output, session, pin) {
     print(abstractPrompt)
     
     # display the abstract after call the LLM API
-    displayAbstract(abstractPrompt, model, temp)
+    displayAbstract(abstractPrompt, model, temp, pin)
   })
 }
 # check to see if the column entered is correct

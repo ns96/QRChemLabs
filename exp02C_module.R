@@ -26,7 +26,8 @@ exp02CUI <- function(id) {
     
     fluidRow(
       box(title = "Plot Data", status = "primary", width = 12,
-        plotlyOutput(ns("plot1"))
+        plotlyOutput(ns("plot1")),
+        span(htmlOutput(ns("vplot1")), style="color:blue"),
       ),
       
       a("YouTube -- Electrolyte and None Electrolyte Solution", target="_blank", href="https://m.youtube.com/watch?v=jg2uJFa8EVo"),
@@ -38,22 +39,14 @@ exp02CUI <- function(id) {
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/IPKvdD8btgs" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
     ),
     
-    # add row to send prompts to google gemini or other LLM API
-    fluidRow(
-      # add drop down for selecting the llm model
-      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
-      
-      # add slider input for selecting temperature
-      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
-      
-      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
-    )
+    # add UI elements to send prompts to LLM API for Abstract generation
+    getLLMPromptUIRow(ns)
   )
 }
 
 # Server code
 exp02C <- function(input, output, session, pin) {
-  # render the datatable for electrolytes
+  # render the data table for electrolytes
   output$hot1 <- renderRHandsontable({
     if (!is.null(input$hot1)) {
       DF = hot_to_r(input$hot1)
@@ -69,16 +62,17 @@ exp02C <- function(input, output, session, pin) {
     
     if(isAdminUser(pin)) {
       fit.numbers = doLinearFit(DF[[1]], DF[[2]])
-      
-      resultsNaCl <<- paste0('NaCl Fit Results: Intercept ->', fit.numbers$intercept, 
-                               ', Slope ->', fit.numbers$slope, ', R-squared ->', fit.numbers$rsquare)
+      resultsNaCl <<- paste0('NaCl Fit Results: Intercept ->', formatC(fit.numbers$intercept, format="f", digits = 2), 
+                             ', Slope ->', formatC(fit.numbers$slope, format="f", digits = 2),
+                             ', R-squared ->', formatC(fit.numbers$rsquare, format="f", digits = 4))
       
       fit.numbers = doLinearFit(DF[[1]], DF[[3]])
-      resultsAceticAcid <<- paste0('HC2H3O2 Fit Results: Intercept ->', fit.numbers$intercept, 
-                               ', Slope ->', fit.numbers$slope, ', R-squared ->', fit.numbers$rsquare)
+      resultsAceticAcid <<- paste0('HC2H3O2 Fit Results: Intercept ->', formatC(fit.numbers$intercept, format="f", digits = 2), 
+                                   ', Slope ->', formatC(fit.numbers$slope, format="f", digits = 2),
+                                   ', R-squared ->', formatC(fit.numbers$rsquare, format="f", digits = 4))
       
       
-      output$vhot1 <- renderText({ paste0(resultsNaCl, '<br>', resultsAceticAcid) })
+      output$vplot1 <- renderText({ paste0(resultsNaCl, '<br>', resultsAceticAcid) })
     }
     
     rhandsontable(DF, stretchH = "all", rowHeaders = FALSE)
@@ -109,14 +103,13 @@ exp02C <- function(input, output, session, pin) {
     abstractPrompt = paste("Generate a 200-300 word scientific abstract about ",
                            "THE EFFECT OF CONCENTRATION ON THE CONDUCTIVITY OF DILUTE SOLUTIONS OF NACl and HC2H3O2",
                            "Make sure to do linear fit of data and indicate which solution shows a linear response to ",
-                           "concentration vs conductivity. Show the R-squared values in text",
+                           "concentration vs conductivity. Show the R-squared values in text.",
                            "Only return the Abstract text.",
                            "Here is the csv data:\n", csvString)
     
     print(abstractPrompt)
     
-    # display the abstract after call the LLM API
-    displayAbstract(abstractPrompt, model, temp)
+    displayAbstract(abstractPrompt, model, temp, pin)
   })
 }
 

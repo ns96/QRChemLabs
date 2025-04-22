@@ -720,8 +720,26 @@ askDeepSeek <- function(prompt, api_key=llmKeys$deepseek, model = "deepseek-chat
   return(parsed$choices[[1]]$message$content)
 }
 
+# function to return a fluid row to sending propmts to Gemini and other LLM
+# @ns namespace function
+getLLMPromptUIRow <- function(ns) {
+  row <- fluidRow(
+    # add drop down for selecting the llm model
+    column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek", "Show Prompt"))),
+    
+    # add slider input for selecting temperature
+    column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
+    
+    column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
+  )
+  
+  return (row)
+}
+
 # function to send prompt to LLM API and display Abstract
-displayAbstract <- function(abstractPrompt, model, temp) {
+displayAbstract <- function(abstractPrompt, model, temp, pin) {
+  dialogTitle  = paste("Generated Abstract --", model)
+  
   # check if to use google gemini
   if(model == "Google Gemini") {
     response = askGemini(abstractPrompt, temperature = temp)
@@ -730,7 +748,9 @@ displayAbstract <- function(abstractPrompt, model, temp) {
   } else if(model == "DeepSeek") {
     response = askDeepSeek(abstractPrompt, temperature = temp)
   } else {
-    response = "Model not supported ..."
+    # assume we just want to show the prompt
+    dialogTitle = "LLM Prompt"
+    response = abstractPrompt
   }
   
   # get the word count of the response
@@ -739,7 +759,7 @@ displayAbstract <- function(abstractPrompt, model, temp) {
   
   # display the generated abstract
   showModal(modalDialog(
-    title = paste("Generated Abstract --", model),
+    title = dialogTitle,
     response,
     easyClose = TRUE,
     footer = NULL

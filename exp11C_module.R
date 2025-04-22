@@ -61,16 +61,8 @@ exp11CUI <- function(id) {
       a("Solubility Product Constants near 25 degC", target="_blank", href="https://www.chm.uri.edu/weuler/chm112/refmater/KspTable.html")
     ),
     
-    # add row to send prompts to google gemini or other LLM API
-    fluidRow(
-      # add drop down for selecting the llm model
-      column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek"))),
-      
-      # add slider input for selecting temperature
-      column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
-      
-      column(4, actionButton(ns("llmGenerate"), "Generate Abstract"))
-    )
+    # add UI elements to send prompts to LLM API for Abstract generation
+    getLLMPromptUIRow(ns)
   )
 }
 
@@ -162,7 +154,7 @@ exp11C <- function(input, output, session, pin) {
     print(abstractPrompt)
     
     # display the abstract after call the LLM API
-    displayAbstract(abstractPrompt, model, temp)
+    displayAbstract(abstractPrompt, model, temp, pin)
   })
 }
 

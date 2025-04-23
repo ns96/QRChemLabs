@@ -10,3 +10,9 @@ default:
     courseTable: 'Courses'
     semesterTable: 'Semesters'
     userPinTable: 'UserPins'
+    
+  # LLM model API keys
+  llmKeys:
+    gemini: 'YOUR_API_KEY_HERE'
+    openai: 'sk-YOUR_API_KEY_HERE'
+    deepseek: 'sk-YOUR_API_KEY_HERE'

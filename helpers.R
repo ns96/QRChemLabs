@@ -740,7 +740,7 @@ getLLMPromptUIRow <- function(ns) {
 displayAbstract <- function(abstractPrompt, model, temp, pin) {
   dialogTitle  = paste("Generated Abstract --", model)
   
-  # check if to use google gemini
+  # check if to use Google's Gemini
   if(model == "Google Gemini") {
     response = askGemini(abstractPrompt, temperature = temp)
   } else if(model == "ChatGPT") {
@@ -749,7 +749,7 @@ displayAbstract <- function(abstractPrompt, model, temp, pin) {
     response = askDeepSeek(abstractPrompt, temperature = temp)
   } else {
     # assume we just want to show the prompt
-    dialogTitle = "LLM Prompt"
+    dialogTitle = "LLM Prompt ->>"
     response = abstractPrompt
   }
   
@@ -757,7 +757,7 @@ displayAbstract <- function(abstractPrompt, model, temp, pin) {
   wordCount = countWords(response)
   response = paste0("Word Count: ", wordCount, " || ", response)
   
-  # display the generated abstract
+  # display the generated abstract or the prompt
   showModal(modalDialog(
     title = dialogTitle,
     response,
@@ -768,7 +768,7 @@ displayAbstract <- function(abstractPrompt, model, temp, pin) {
 
 # Function to count words in a string of text
 countWords <- function(text) {
-  # Remove leading/trailing whitespace and split by one or more spaces
+  # Remove leading/trailing white space and split by one or more spaces
   words <- unlist(strsplit(trimws(text), "\\s+"))
   
   # Return the number of words

@@ -62,10 +62,12 @@ exp03C <- function(input, output, session, pin) {
         fit.numbers = doLinearFit(x, y)
         unknown.Conc = (unknownExp03C + fit.numbers$intercept) / fit.numbers$slope 
         
-        resultsExp03C <<- paste0('Fit Results: Intercept ->', fit.numbers$intercept, 
-                         ', Slope ->', fit.numbers$slope, ', R-squared ->', fit.numbers$rsquare,
-                         ', Unknown Absorbance ->', unknownExp03C,
-                         ', Unknown Concentration ->', unknown.Conc)
+        resultsExp03C <<- paste0('Fit Results: Intercept -> ', 
+                                formatC(fit.numbers$intercept, format="f", digits = 6),
+                                ', Slope -> ', formatC(fit.numbers$slope, format="f", digits = 6),
+                                ', R-squared -> ', formatC(fit.numbers$rsquare, format = "f", digits = 3),
+                                ', Unknown Absorbance -> ', formatC(unknownExp03C, format = "f", digits = 3),
+                                ', Unknown Concentration -> ', formatC(unknown.Conc, format = "f", digits = 3))
         
         output$vhot1 <- renderText({ resultsExp03C })
       }

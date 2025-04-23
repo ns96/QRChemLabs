@@ -133,10 +133,10 @@ exp06C <- function(input, output, session, pin) {
       resultsExp06CDF <<- data.frame(
         "Temperature (C)" = input$temp,
         "Reaction Order" = reactionOrder,
-        "Slope" = fit.numbers$slope,
-        "R^2" = fit.numbers$rsquare,
-        "Rate Constant (M/s)" = rate.constant,
-        "Half Life (s)" = half.life
+        "Slope" = formatC(fit.numbers$slope, format="f", digits = 6),
+        "R^2" = formatC(fit.numbers$rsquare, format = "f", digits = 3),
+        "Rate Constant (M/s)" = formatC(rate.constant, format="f", digits = 6),
+        "Half Life (s)" = formatC(half.life, format = "d")
       )
       
       output$v1 <- renderText({ 

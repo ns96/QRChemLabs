@@ -14,10 +14,10 @@ exp13BUI <- function(id, lab.number = 13) {
     
     fluidRow(
       box(title = "Vitamin C Tablet Data and Calculations", status = "primary", width = 12,
-          textInput(ns("q1"), "1. Mass of one glossy square weighing paper (g):", value = ''),
+          textInput(ns("q1"), "1. Mass of one plastic weighing boat (g):", value = ''),
           span(textOutput(ns("v1")), style="color:blue"),
           
-          textInput(ns("q2"), "2. Mass of weighing paper with Vitamin C tablet (g):", value = ''),
+          textInput(ns("q2"), "2. Mass of plastic weighing boat with Vitamin C tablet (g):", value = ''),
           span(textOutput(ns("v2")), style="color:blue"),
           
           textInput(ns("q3"), "3. Mass of one Vitamin C tablet (g):"),
@@ -29,7 +29,7 @@ exp13BUI <- function(id, lab.number = 13) {
           textInput(ns("q5"), "5.	Volume of potassium iodate (KIO3) used (mL):"),
           span(textOutput(ns("v5")), style="color:blue"),
           
-          textInput(ns("q6"), "6. Calculate the Tire Value (mL/g):"),
+          textInput(ns("q6"), "6. Calculate the Titre Value (mL/g):"),
           span(textOutput(ns("v6")), style="color:blue")
       )
     ),
@@ -43,7 +43,8 @@ exp13BUI <- function(id, lab.number = 13) {
           span(textOutput(ns("v8")), style="color:blue"),
           
           textInput(ns("q9"), "9. Calculated mg of Vitamin C in 100 mL Tang sample (mg):"),
-          span(textOutput(ns("v9")), style="color:blue")
+          span(textOutput(ns("v9")), style="color:blue"),
+          span(textOutput(ns("v9a")), style="color:blue"),
       )  
     ),
     
@@ -71,23 +72,23 @@ exp13BUI <- function(id, lab.number = 13) {
 exp13B <- function(input, output, session, pin) {
   # load data for students
   observeEvent(input$load, {
-    q1 = round(runif(1, min=0.2, max=0.4), digits = 4)
+    q1 = round(runif(1, min=0.7, max=0.8), digits = 4)
     q1v = format(q1, nsmall = 4)
     updateTextInput(session, "q1", value = q1v)
     
-    mass.tablet = runif(1, min=0.7, max=0.9)
+    mass.tablet = runif(1, min=0.5, max=0.7)
     q2 = round(mass.tablet + q1, digits = 4)
     q2v = format(q2, nsmall = 4)
     updateTextInput(session, "q2", value = q2v)
     
-    q5 = round(runif(1, min=30, max=40), digits = 1)
+    q5 = round(runif(1, min=16, max=20), digits = 1)
     q5v = format(q5, nsmall = 1)
     updateTextInput(session, "q5", value = q5v)
     
     updateTextInput(session, "q7", value = '100.0')
     
-    q8 = round(runif(1, min=2, max=4), digits = 2)
-    q8v = format(q8, nsmall = 2)
+    q8 = round(runif(1, min=0.9, max=2), digits = 1)
+    q8v = format(q8, nsmall = 1)
     updateTextInput(session, "q8", value = q8v)
   })
   
@@ -136,6 +137,9 @@ exp13B <- function(input, output, session, pin) {
     error9 = abs(q9 - ans9)
     valid9 = error9 < 0.5
     output$v9 <- renderText({ showValid(valid9, ans9, pin, 1) })
+    
+    # calculated the percent error assume a 100 ml of tang has 25 mg/100 ml
+    output$v9a <- renderText({percentError(25, ans9)})
     qlist["q9"] = q9
     
     # save to the database now

@@ -88,8 +88,7 @@ exp12C <- function(input, output, session, pin) {
     }
   )
   
-  # Display the pH data plot and add line at pH nine
-  # https://stackoverflow.com/questions/34093169/horizontal-vertical-line-in-plotly
+  # Display pH plot # 1 data for lemonade
   output$plot1 <- renderPlotly({
     x_data = getPlotDataExp12C('L_NaOH_X')
     y_data = getPlotDataExp12C('L_pH_Y')
@@ -100,7 +99,7 @@ exp12C <- function(input, output, session, pin) {
       layout(showlegend = FALSE)
   })
 
-  # Display the plot # 2
+  # Display the plot # 2 for citric acid
   output$plot2 <- renderPlotly({
     x_data = getPlotDataExp12C('CA_NaOH_X')
     y_data = getPlotDataExp12C('CA_pH_Y')

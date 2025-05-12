@@ -5,7 +5,6 @@
 # 
 
 exp11CL = list()
-volume.CaOH2 = 20.0
 
 # The UI code
 exp11CUI <- function(id) {
@@ -17,22 +16,30 @@ exp11CUI <- function(id) {
     h3("Experiment 11 -- DETERMINING THE KSP OF CALCIUM HYDROXIDE"),
     
     fluidRow(
-      box(width = 6, title = paste("Trial One / ", volume.CaOH2, "mL Ca(OH)2"), status = "primary",
+      box(width = 6, title = paste("Trial One / 20 mL Ca(OH)2"), status = "primary",
         plotlyOutput(ns("plot1")),
         hr(),
         
         plotlyOutput(ns("plot2")),
         
-        numericInput(ns("i1"), "Trial 1 Equivalence Point (mL):", value = "")
+        numericInput(ns("i1"), "Trial 1 Equivalence Point (mL):", value = ""),
+        
+        numericInput(ns("volume.CaOH2"), "Volume Ca(OH)2 (mL):", value = "20.0"),
+        
+        numericInput(ns("room.temp"), "Room Temperature (C):", value = "25"),
       ),
       
-      box(width = 6, title = paste("Trial Two / ", volume.CaOH2, "mL Ca(OH)2"), status = "primary",
+      box(width = 6, title = paste("Trial Two / 20 mL Ca(OH)2"), status = "primary",
         plotlyOutput(ns("plot3")),
         hr(),
         
         plotlyOutput(ns("plot4")),
         
-        numericInput(ns("i2"), "Trial 2 Equivalence Point (mL):", value = "")
+        numericInput(ns("i2"), "Trial 2 Equivalence Point (mL):", value = ""),
+        
+        numericInput(ns("hcl.Conc"), "HCl Concentration (M):", value = "0.050"),
+        
+        selectInput(ns("literature.Ksp"), "Excepted Ksp Value:", c("5.02E-6", "7.9E-6", "4.42E-5"))
       )
     ),
     
@@ -72,9 +79,14 @@ exp11C <- function(input, output, session, pin) {
   output$hot1 <- renderRHandsontable({
     trial1.mL = input$i1
     trial2.mL = input$i2
+    volume.CaOH2 <<- as.numeric(input$volume.CaOH2)
+    conc.HCl <<- as.numeric(input$hcl.Conc)
       
     if(!is.na(trial1.mL) && !is.na(trial1.mL)) {
-      df = getTableDataExp11C(trial1.mL, trial2.mL, pin)
+      # get the selected literature value for ksp
+      literature.Ksp = input$literature.Ksp
+      
+      df = getTableDataExp11C(trial1.mL, trial2.mL, literature.Ksp, pin)
       rhandsontable(df, stretchH = "all", readOnly = FALSE)
     }
   })
@@ -141,6 +153,7 @@ exp11C <- function(input, output, session, pin) {
     # get the selected model and temperature
     model = input$llmModel
     temp = input$llmTemp
+    room.temp = input$room.temp
     
     # get the data from the table and covert to csv string
     DF = hot_to_r(input$hot1)
@@ -148,6 +161,7 @@ exp11C <- function(input, output, session, pin) {
     
     # create the prompt now
     abstractPrompt = paste("Generate a 200-300 word scientific abstract about DETERMINING THE KSP OF CALCIUM HYDROXIDE for data below.",
+                           "Room Temperature:", room.temp, "degC",
                            "Only return the Abstract text.",
                            "Here is the csv data:\n", csvString)
     
@@ -188,22 +202,22 @@ getDataExp11C = function() {
 }
 
 # function to get the initial data
-getTableDataExp11C = function(trial1.mL, trial2.mL, pin) {
+getTableDataExp11C = function(trial1.mL, trial2.mL, literature.Ksp, pin) {
   v1 = c("Trial 1", "Trial 2", "Average")
   v2 = c(volume.CaOH2, volume.CaOH2, volume.CaOH2)
   v3 = c(trial1.mL, trial2.mL, " ")
   v4 = c(" ", " ", " ")
   v5 = c(" ", " ", " ")
   v6 = c(" ", " ", " ")
-  v7 = c("5.5E10-6", "5.5E10-6", "5.5E10-6")
+  v7 = c(literature.Ksp, literature.Ksp, literature.Ksp)
   v8 = c(" ", " ", " ")
   
   if(isAdminUser(pin)) {
     v3 = c(trial1.mL, trial2.mL, (trial1.mL + trial2.mL)/2)
     
-    molesOH1 = (trial1.mL/1000)*0.050
+    molesOH1 = (trial1.mL/1000)*conc.HCl
     molarityOH1 = molesOH1/(volume.CaOH2/1000)
-    molesOH2 = (trial2.mL/1000)*0.050
+    molesOH2 = (trial2.mL/1000)*conc.HCl
     molarityOH2 = molesOH2/(volume.CaOH2/1000)
     molarityOHAvg = (molarityOH1 + molarityOH2)/2
     v4 = c(formatC(molarityOH1, format = "f", digits = 4), 
@@ -224,7 +238,7 @@ getTableDataExp11C = function(trial1.mL, trial2.mL, pin) {
            formatC(ksp2, format = "E", digits = 2), 
            formatC(kspAvg, format = "E", digits = 2))
     
-    actual = 5.5e-6
+    actual = as.numeric(literature.Ksp)
     error1 = (abs(actual - ksp1)/actual)*100
     error2 = (abs(actual - ksp2)/actual)*100
     errorAvg = (abs(actual - kspAvg)/actual)*100

@@ -95,8 +95,7 @@ exp13C <- function(input, output, session, pin) {
     }
   )
   
-  # Display the pH data plot and add line at pH nine
-  # https://stackoverflow.com/questions/34093169/horizontal-vertical-line-in-plotly
+  # Display plot # 1 of temperature change
   output$plot1 <- renderPlotly({
     x = c("1. Initial Temperature", "2. Final Temperature")
     y = c(expData13L$Reaction1.T1, expData13L$Reaction1.T2)
@@ -104,7 +103,7 @@ exp13C <- function(input, output, session, pin) {
     fig = getBarPlot(x, y, "Temperature Change")
   })
 
-  # Display the plot # 2
+  # Display the plot # 2 of temperature change
   output$plot2 <- renderPlotly({
     x = c("1. Initial Temperature", "2. Final Temperature")
     y = c(expData13L$Reaction2.T1, expData13L$Reaction2.T2)

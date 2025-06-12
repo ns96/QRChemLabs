@@ -15,7 +15,7 @@ library(shinybusy)
 
 # Define UI for application that display chemistry tables
 shinyUI(dashboardPage(
-  dashboardHeader(title = "QRChem Labs v0.8.0 (05/12/2025)", titleWidth = 325),
+  dashboardHeader(title = "QRChem Labs v0.9.1 (06/12/2025)", titleWidth = 325),
   
   dashboardSidebar(
     selectInput("courseCode", "Course Code:", courseCodes),

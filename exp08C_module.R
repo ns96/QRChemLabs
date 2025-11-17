@@ -166,15 +166,18 @@ getResultsExp08C = function(data) {
   
   # create the results text 
   avgKa = mean(ka)
+  avgPI = mean(pion)
   vinegarH = 10^(-1*data[5])
   vinegarM = (vinegarH*vinegarH)/avgKa
   
   avgKa.F = formatC(avgKa, format = "E", digits = 2)
+  avgPI.F = formatC(avgPI, digits = 2)
   vinegarH.F = formatC(vinegarH, format = "E", digits = 2)
   vinegarM.F = formatC(vinegarM, digits = 4)
   perror = percentError(0.833, vinegarM)
   
-  resultsExp08C <<- paste("Average Ka:", avgKa.F, 
+  resultsExp08C <<- paste("Average Ka:", avgKa.F,
+                          ", Average Percent Ionization:", avgPI.F,
                           ", Vinegar H+:", vinegarH.F,
                           ", Calculated Vinegar (M):", vinegarM.F,
                           ", Actual Vinegar (M): 0.833",

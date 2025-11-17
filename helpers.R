@@ -77,6 +77,16 @@ getSmoothPlot = function(data, xlabel, ylabel, n1 = "real", n2 = "exp") {
   return(p)
 }
 
+# get connected scatter plot
+getConnectedScatterPlot = function(data, xlabel, ylabel, n1 = "real", n2 = "exp") {
+  p <- plot_ly() %>%
+    add_trace(x = data$x1, y = data$y1, name = n1, type = 'scatter', mode = 'lines+markers') %>%
+    add_trace(x = data$x2, y = data$y2, name = n2, type = 'scatter', mode = 'lines+markers') %>%
+    layout(xaxis = list(title = xlabel), yaxis = list(title = ylabel))
+  
+  return(p)
+}
+
 # function to generate message if answer is valid
 showValid <- function(valid, ans, pin, rdigits = 2) {
   # check to see if to reset the pin to the adminPin
@@ -523,7 +533,7 @@ llmKeys <- config::get("llmKeys")
 #'        rather than hardcoding directly in scripts.
 #' @param model Character string. The name of the Gemini model to use
 #'        (e.g., "gemini-pro", "gemini-1.0-pro", "gemini-1.5-pro-latest").
-#'        Defaults to "gemini-2.0-flash". Check Google's documentation for available models.
+#'        Defaults to "gemini-2.5-flash". Check Google's documentation for available models.
 #' @param temperature Numeric. Controls the randomness of the output. Lower values
 #'        (e.g., 0.2) make the output more deterministic/focused, higher values (e.g., 0.9)
 #'        make it more creative/diverse. Typically between 0 and 1, though the API might
@@ -535,7 +545,7 @@ llmKeys <- config::get("llmKeys")
 #'         or if content was blocked by safety settings.
 #'         An error (`stop()`) is raised if the API request itself fails (e.g., bad API key, network issue).
 
-askGemini <- function(prompt, api_key = llmKeys$gemini, model = "gemini-2.0-flash", temperature = 0.7, verbose = FALSE) {
+askGemini <- function(prompt, api_key = llmKeys$gemini, model = "gemini-2.5-flash", temperature = 0.7, verbose = FALSE) {
   # --- Input Validation ---
   if (!is.character(prompt) || nchar(prompt) == 0) {
     stop("Error: 'prompt' must be a non-empty character string.")
@@ -639,7 +649,8 @@ askGemini <- function(prompt, api_key = llmKeys$gemini, model = "gemini-2.0-flas
   }
   
   if (verbose) message("Successfully extracted generated text.")
-  return(generated_text)
+  
+  return(paste(generated_text, ' -- model:', model))
 }
 
 # function to send prompts to OpenAI's ChatGPT API
@@ -679,7 +690,8 @@ askChatGPT <- function(prompt, api_key = llmKeys$openai, model = "gpt-4.1-mini",
   }
   
   parsed <- content(response, as = "parsed", type = "application/json")
-  return(parsed$choices[[1]]$message$content)
+  generated_text  = parsed$choices[[1]]$message$content
+  return(paste(generated_text, '-- model:', model))
 }
 
 # function to send prompts to DeepSeek's API
@@ -717,7 +729,42 @@ askDeepSeek <- function(prompt, api_key=llmKeys$deepseek, model = "deepseek-chat
   
   # Parse and return the content of the assistant's reply
   parsed <- content(response, as = "parsed", type = "application/json")
-  return(parsed$choices[[1]]$message$content)
+  generated_text = parsed$choices[[1]]$message$content
+  return(paste(generated_text, '-- model:', model))
+}
+
+# function to send prompts to Claude API
+askClaude <- function(prompt, api_key = llmKeys$claude, model = "claude-sonnet-4-5-20250929", temperature = 0.7) {
+  # Claude API endpoint
+  url <- "https://api.anthropic.com/v1/messages"
+  
+  headers <- add_headers(
+    "x-api-key" = api_key,
+    "anthropic-version" = "2023-06-01",
+    "content-type" = "application/json"
+  )
+  
+  body <- list(
+    model = model,
+    max_tokens = 1024,
+    temperature = temperature,
+    messages = list(
+      list(
+        role = "user",
+        content = prompt
+      )
+    )
+  )
+  
+  response <- POST(url, headers, body = toJSON(body, auto_unbox = TRUE), encode = "raw")  # ADDED: encode = "raw"
+  
+  if (status_code(response) != 200) {
+    stop("Request failed: ", content(response, "text"))
+  }
+  
+  parsed <- content(response, as = "parsed", type = "application/json")
+  generated_text = parsed$content[[1]]$text
+  return(paste(generated_text, '-- model:', model))
 }
 
 # function to return a fluid row to sending propmts to Gemini and other LLM
@@ -725,7 +772,7 @@ askDeepSeek <- function(prompt, api_key=llmKeys$deepseek, model = "deepseek-chat
 getLLMPromptUIRow <- function(ns) {
   row <- fluidRow(
     # add drop down for selecting the llm model
-    column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek", "Show Prompt"))),
+    column(4, selectInput(ns("llmModel"), "Select LLM Model", choices = c("Google Gemini", "ChatGPT", "DeepSeek", "Claude", "Show Prompt"))),
     
     # add slider input for selecting temperature
     column(4, sliderInput(ns("llmTemp"), "Temperature", min = 0, max = 1, value = 0.7)),
@@ -738,20 +785,29 @@ getLLMPromptUIRow <- function(ns) {
 
 # function to send prompt to LLM API and display Abstract
 displayAbstract <- function(abstractPrompt, model, temp, pin) {
-  dialogTitle  = paste("Generated Abstract --", model)
+  dialogTitle = paste("Generated Abstract --", model)
   
-  # check if to use Google's Gemini
-  if(model == "Google Gemini") {
-    response = askGemini(abstractPrompt, temperature = temp)
-  } else if(model == "ChatGPT") {
-    response = askChatGPT(abstractPrompt, temperature = temp)
-  } else if(model == "DeepSeek") {
-    response = askDeepSeek(abstractPrompt, temperature = temp)
-  } else {
-    # assume we just want to show the prompt
-    dialogTitle = "LLM Prompt ->>"
-    response = abstractPrompt
-  }
+  response <- tryCatch({
+      # check if to use Google's Gemini
+      if (model == "Google Gemini") {
+        response = askGemini(abstractPrompt, temperature = temp)
+      } else if (model == "ChatGPT") {
+        response = askChatGPT(abstractPrompt, temperature = temp)
+      } else if (model == "DeepSeek") {
+        response = askDeepSeek(abstractPrompt, temperature = temp)
+      } else if (model == "Claude") {
+        response = askClaude(abstractPrompt, temperature = temp)
+      } else {
+        # assume we just want to show the prompt
+        dialogTitle = "LLM Prompt ->>"
+        response = abstractPrompt
+      }
+    }, error = function(e) {
+      response = cleanLLMError(e$message)
+      print(e$message)
+      return(response)
+    }
+  )
   
   # get the word count of the response
   wordCount = countWords(response)
@@ -773,6 +829,44 @@ countWords <- function(text) {
   
   # Return the number of words
   return(length(words))
+}
+
+# function to clean up LLM error messages by redacting API keys and extracting human-readable content
+# Gemini pro 2.5 generated code
+cleanLLMError <- function(raw_msg) {
+  # --- 1. SECURITY: Redact ALL types of API keys first ---
+  # This regex covers:
+  # - "key=AIza..." (Google)
+  # - "Bearer sk-..." (OpenAI/DeepSeek)
+  # - "x-api-key: sk-..." (Claude)
+  # It looks for the keyword, followed by non-whitespace characters
+  safe_msg <- gsub("(key=|Bearer |x-api-key:? )[^[:space:]\"\']+", "\\1[REDACTED]", raw_msg, ignore.case = TRUE)
+  
+  # --- 2. PARSING: Try to extract the human-readable message ---
+  tryCatch({
+    # Attempt to find the start of the JSON payload
+    # We look for the first curly brace '{' to handle different wrapper formats
+    json_start <- regexpr("\\{", safe_msg)
+    
+    if (json_start > 0) {
+      json_str <- substring(safe_msg, json_start)
+      parsed <- fromJSON(json_str)
+      
+      # Universal Error Extraction Logic:
+      # OpenAI/DeepSeek: { "error": { "message": "..." } }
+      # Claude: { "type": "error", "error": { "message": "..." } }
+      # Google: { "error": { "message": "..." } }
+      
+      if (!is.null(parsed$error$message)) {
+        return(parsed$error$message)
+      }
+    }
+  }, error = function(e) {
+    # If JSON parsing fails, ignore it and fall through to the safe raw message
+  })
+  
+  # --- 3. FALLBACK: Return the redacted raw string ---
+  return(safe_msg)
 }
 
 

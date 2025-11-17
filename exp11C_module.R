@@ -18,9 +18,18 @@ exp11CUI <- function(id) {
     fluidRow(
       box(width = 6, title = paste("Trial One / 20 mL Ca(OH)2"), status = "primary",
         plotlyOutput(ns("plot1")),
+        downloadButton(ns("downloadPlot1Data"), "Download Plot Data"),
+        
+        fileInput(ns("plot1Data"), "Upload CSV File",
+                  multiple = FALSE,
+                  accept = c("text/csv",
+                             "text/comma-separated-values,text/plain",
+                             ".csv")),
+        
         hr(),
         
         plotlyOutput(ns("plot2")),
+        downloadButton(ns("downloadPlot2Data"), "Download Plot Data"),
         
         numericInput(ns("i1"), "Trial 1 Equivalence Point (mL):", value = ""),
         
@@ -31,9 +40,18 @@ exp11CUI <- function(id) {
       
       box(width = 6, title = paste("Trial Two / 20 mL Ca(OH)2"), status = "primary",
         plotlyOutput(ns("plot3")),
+        downloadButton(ns("downloadPlot3Data"), "Download Plot Data"),
+        
+        fileInput(ns("plot3Data"), "Upload CSV File",
+                  multiple = FALSE,
+                  accept = c("text/csv",
+                             "text/comma-separated-values,text/plain",
+                             ".csv")),
+        
         hr(),
         
         plotlyOutput(ns("plot4")),
+        downloadButton(ns("downloadPlot4Data"), "Download Plot Data"),
         
         numericInput(ns("i2"), "Trial 2 Equivalence Point (mL):", value = ""),
         
@@ -102,6 +120,72 @@ exp11C <- function(input, output, session, pin) {
     }
   )
   
+  # Download plot 1 data
+  output$downloadPlot1Data <- downloadHandler(
+    filename = function() {
+      paste0("Experiment11C_Plot1-", pin, ".csv")
+    },
+    content = function(file) {
+      x_data = exp11CL$Trial1_X
+      y_data = exp11CL$Trial1_Y
+      
+      df = data.frame(x_data, y_data)
+      colnames(df) <- c("Volume HCl (mL)", "pH")
+      
+      write.csv(df, file, row.names = FALSE)
+    }
+  )
+  
+  # Download plot 2 data
+  output$downloadPlot2Data <- downloadHandler(
+    filename = function() {
+      paste0("Experiment11C_Plot2-", pin, ".csv")
+    },
+    content = function(file) {
+      dL = derivative(data.frame(exp11CL$Trial1_X, exp11CL$Trial1_Y), plot=FALSE)
+      x_data = dL$second_deriv[[1]]
+      y_data = dL$second_deriv[[2]]
+      
+      df = data.frame(x_data, y_data)
+      colnames(df) <- c("Volume HCl (mL)", "Second Derivative pH")
+      
+      write.csv(df, file, row.names = FALSE)
+    }
+  )
+  
+  # Download plot 3 data
+  output$downloadPlot3Data <- downloadHandler(
+    filename = function() {
+      paste0("Experiment11C_Plot3-", pin, ".csv")
+    },
+    content = function(file) {
+      x_data = exp11CL$Trial2_X
+      y_data = exp11CL$Trial2_Y
+      
+      df = data.frame(x_data, y_data)
+      colnames(df) <- c("Volume HCl (mL)", "pH")
+      
+      write.csv(df, file, row.names = FALSE)
+    }
+  )
+  
+  # Download plot 4 data
+  output$downloadPlot4Data <- downloadHandler(
+    filename = function() {
+      paste0("Experiment11C_Plot4-", pin, ".csv")
+    },
+    content = function(file) {
+      dL = derivative(data.frame(exp11CL$Trial2_X, exp11CL$Trial2_Y), plot=FALSE)
+      x_data = dL$second_deriv[[1]]
+      y_data = dL$second_deriv[[2]]
+      
+      df = data.frame(x_data, y_data)
+      colnames(df) <- c("Volume HCl (mL)", "Second Derivative pH")
+      
+      write.csv(df, file, row.names = FALSE)
+    }
+  )
+  
   # Display the pH data plots
   output$plot1 <- renderPlotly({
     x_data = getPlotDataExp11C('Trial1_X')
@@ -148,6 +232,72 @@ exp11C <- function(input, output, session, pin) {
       layout(showlegend = FALSE)
   })
   
+  # handle file upload for plot 1 data
+  observeEvent(input$plot1Data, {
+    req(input$plot1Data)
+    
+    df = read.csv(input$plot1Data$datapath)
+    
+    exp11CL$Trial1_X <<- df[[1]]
+    exp11CL$Trial1_Y <<- df[[2]]
+    
+    # update the plot1
+    output$plot1 <- renderPlotly({
+      x_data = exp11CL$Trial1_X
+      y_data = exp11CL$Trial1_Y
+      
+      df = data.frame(x_data, y_data)
+      
+      fig = getLinePlot(df, "Titration Data", "Volume HCl (mL)", "pH", smooth = FALSE) %>%
+        layout(showlegend = FALSE)
+    })
+    
+    # update the plot2
+    output$plot2 <- renderPlotly({
+      dL = derivative(data.frame(exp11CL$Trial1_X, exp11CL$Trial1_Y), plot=FALSE)
+      x_data = dL$second_deriv[[1]]
+      y_data = dL$second_deriv[[2]]
+      
+      df = data.frame(x_data, y_data)
+      
+      fig = getLinePlot(df, "Second Derivative", "Volume HCl (mL)", "pH", smooth = FALSE) %>%
+        layout(showlegend = FALSE)
+    })
+  })
+  
+  # handle file upload for plot 3 data
+  observeEvent(input$plot3Data, {
+    req(input$plot3Data)
+    
+    df = read.csv(input$plot3Data$datapath)
+    
+    exp11CL$Trial2_X <<- df[[1]]
+    exp11CL$Trial2_Y <<- df[[2]]
+    
+    # update the plot3
+    output$plot3 <- renderPlotly({
+      x_data = exp11CL$Trial2_X
+      y_data = exp11CL$Trial2_Y
+      
+      df = data.frame(x_data, y_data)
+      
+      fig = getLinePlot(df, "Titration Data", "Volume HCl (mL)", "pH", smooth = FALSE) %>%
+        layout(showlegend = FALSE)
+    })
+    
+    # update the plot4
+    output$plot4 <- renderPlotly({
+      dL = derivative(data.frame(exp11CL$Trial2_X, exp11CL$Trial2_Y), plot=FALSE)
+      x_data = dL$second_deriv[[1]]
+      y_data = dL$second_deriv[[2]]
+      
+      df = data.frame(x_data, y_data)
+      
+      fig = getLinePlot(df, "Second Derivative", "Volume HCl (mL)", "pH", smooth = FALSE) %>%
+        layout(showlegend = FALSE)
+    })
+  })
+  
   # handle llm generate button selection
   observeEvent(input$llmGenerate, {
     # get the selected model and temperature
@@ -188,7 +338,7 @@ getPlotDataExp11C = function(columnName) {
     n_data = n_data + runif(1, -0.25, 0.25) # add some random number
   }
   
-  # store the data list incase we need to export
+  # store the data list in case so we can export
   # https://stackoverflow.com/questions/20133344/find-closest-value-in-a-vector-with-binary-search
   exp11CL[[columnName]] <<- n_data
   

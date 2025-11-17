@@ -21,20 +21,44 @@ exp0910CUI <- function(id) {
         plotlyOutput(ns("plot1")),
         downloadButton(ns("downloadPlot1Data"), "Download Plot Data"),
         
+        fileInput(ns("plot1Data"), "Upload CSV File",
+                  multiple = FALSE,
+                  accept = c("text/csv",
+                             "text/comma-separated-values,text/plain",
+                             ".csv")),
+        
         hr(),
         
         plotlyOutput(ns("plot2")),
-        downloadButton(ns("downloadPlot2Data"), "Download Plot Data")
+        downloadButton(ns("downloadPlot2Data"), "Download Plot Data"),
+        
+        fileInput(ns("plot2Data"), "Upload CSV File",
+                  multiple = FALSE,
+                  accept = c("text/csv",
+                             "text/comma-separated-values,text/plain",
+                             ".csv"))
       ),
       
       box(width = 6, title = "Titration With Weak Base (NH4OH)", status = "primary",
         plotlyOutput(ns("plot3")),
         downloadButton(ns("downloadPlot3Data"), "Download Plot Data"),
         
+        fileInput(ns("plot3Data"), "Upload CSV File",
+                  multiple = FALSE,
+                  accept = c("text/csv",
+                             "text/comma-separated-values,text/plain",
+                             ".csv")),
+        
         hr(),
         
         plotlyOutput(ns("plot4")),
-        downloadButton(ns("downloadPlot4Data"), "Download Plot Data")
+        downloadButton(ns("downloadPlot4Data"), "Download Plot Data"),
+        
+        fileInput(ns("plot4Data"), "Upload CSV File",
+                  multiple = FALSE,
+                  accept = c("text/csv",
+                             "text/comma-separated-values,text/plain",
+                             ".csv"))
       )
     ),
     
@@ -97,6 +121,13 @@ exp0910C <- function(input, output, session, pin) {
     
     df = data.frame(x_data, y_data)
     
+    # get the time for color change
+    if(is.numeric(values$data[1,2])) {
+      cc_time = values$data[1,2]
+    } else {
+      cc_time = 240
+    }
+    
     # get time at equivalence point
     if(is.numeric(values$data[1,3])) {
       eq_time = values$data[1,3]
@@ -107,6 +138,7 @@ exp0910C <- function(input, output, session, pin) {
     fig = getLinePlot(df, "HCl", "Time (seconds)", "pH", smooth = FALSE) %>%
       add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
       add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
+      add_segments(x = cc_time, xend = cc_time, y = y_min, yend = 12) %>%
       layout(showlegend = FALSE)
   })
   
@@ -127,6 +159,13 @@ exp0910C <- function(input, output, session, pin) {
         
     df = data.frame(x_data, y_data)
     
+    # get the time for color change
+    if(is.numeric(values$data[2,2])) {
+      cc_time = values$data[2,2]
+    } else {
+      cc_time = 240
+    }
+    
     # get time at equivalence point
     if(is.numeric(values$data[2,3])) {
       eq_time = values$data[2,3]
@@ -137,6 +176,7 @@ exp0910C <- function(input, output, session, pin) {
     fig = getLinePlot(df, "Acetic Acid", "Time (seconds)", "pH", smooth = FALSE) %>%
       add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
       add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
+      add_segments(x = cc_time, xend = cc_time, y = y_min, yend = 12) %>%
       layout(showlegend = FALSE)
   })
   
@@ -157,6 +197,13 @@ exp0910C <- function(input, output, session, pin) {
     
     df = data.frame(x_data, y_data)
     
+    # get the time for color change
+    if(is.numeric(values$data[3,2])) {
+      cc_time = values$data[3,2]
+    } else {
+      cc_time = 240
+    }
+    
     # get time at equivalence point
     if(is.numeric(values$data[3,3])) {
       eq_time = values$data[3,3]
@@ -167,6 +214,7 @@ exp0910C <- function(input, output, session, pin) {
     fig = getLinePlot(df, "HCl", "Time (seconds)", "pH", smooth = FALSE) %>%
       add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
       add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
+      add_segments(x = cc_time, xend = cc_time, y = y_min, yend = 12) %>%
       layout(showlegend = FALSE)
   })
   
@@ -187,6 +235,13 @@ exp0910C <- function(input, output, session, pin) {
     
     df = data.frame(x_data, y_data)
     
+    # get the time for color change
+    if(is.numeric(values$data[4,2])) {
+      cc_time = values$data[4,2]
+    } else {
+      cc_time = 240
+    }
+    
     # get time at equivalence point
     if(is.numeric(values$data[4,3])) {
       eq_time = values$data[4,3]
@@ -197,6 +252,7 @@ exp0910C <- function(input, output, session, pin) {
     fig = getLinePlot(df, "Acetic Acid", "Time (seconds)", "pH", smooth = FALSE) %>%
       add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
       add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
+      add_segments(x = cc_time, xend = cc_time, y = y_min, yend = 12) %>%
       layout(showlegend = FALSE)
   })
   
@@ -244,7 +300,7 @@ exp0910C <- function(input, output, session, pin) {
     }
   )
   
-  # Download the data to users computer as csv
+  # Download the data in table to user's computer as csv
   output$downloadData <- downloadHandler(
     filename = function() {
       paste0("Experiment0910C_", pin, ".csv")
@@ -255,6 +311,164 @@ exp0910C <- function(input, output, session, pin) {
       write.csv(DF, file, row.names = FALSE)
     }
   )
+  
+  # handle uploading of data for plot 1
+  observeEvent(input$plot1Data, {
+    req(input$plot1Data)
+
+    plot1DF = read.csv(input$plot1Data$datapath)
+    exp0910CPlot1DF <<- plot1DF
+
+    # update plot 1 graph with this new data
+    output$plot1 <- renderPlotly({
+      x_data = exp0910CPlot1DF[[1]]
+      y_data = exp0910CPlot1DF[[2]]
+
+      x_min = min(x_data)
+      y_min = min(y_data) - 0.5
+
+      df = data.frame(x_data, y_data)
+
+      # get the time for color change
+      if(is.numeric(values$data[1,2])) {
+        cc_time = values$data[1,2]
+      } else {
+        cc_time = 240
+      }
+      
+      # get time at equivalence point
+      if(is.numeric(values$data[1,3])) {
+        eq_time = values$data[1,3]
+      } else {
+        eq_time = 250
+      }
+      
+      print("Plot 1 Generation Called ...")
+      
+      fig = getLinePlot(df, "HCl", "Time (seconds)", "pH", smooth = FALSE) %>%
+        add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
+        add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
+        add_segments(x = cc_time, xend = cc_time, y = y_min, yend = 12) %>%
+        layout(showlegend = FALSE)
+    })
+  })
+  
+  # handle uploading of data for plot 2
+  observeEvent(input$plot2Data, {
+    req(input$plot2Data)
+    
+    plot2DF = read.csv(input$plot2Data$datapath)
+    exp0910CPlot2DF <<- plot2DF
+    
+    # update plot 2 graph with this new data
+    output$plot2 <- renderPlotly({
+      x_data = exp0910CPlot2DF[[1]]
+      y_data = exp0910CPlot2DF[[2]]
+      
+      x_min = min(x_data)
+      y_min = min(y_data) - 0.5
+      
+      df = data.frame(x_data, y_data)
+      
+      # get the time for color change
+      if(is.numeric(values$data[2,2])) {
+        cc_time = values$data[2,2]
+      } else {
+        cc_time = 240
+      }
+      
+      # get time at equivalence point
+      if(is.numeric(values$data[2,3])) {
+        eq_time = values$data[2,3]
+      } else {
+        eq_time = 250
+      }
+      
+      fig = getLinePlot(df, "Acetic Acid", "Time (seconds)", "pH", smooth = FALSE) %>%
+        add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
+        add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
+        add_segments(x = cc_time, xend = cc_time, y = y_min, yend = 12) %>%
+        layout(showlegend = FALSE)
+    })
+  })
+  
+  # handle uploading of data for plot 3
+  observeEvent(input$plot3Data, {
+    req(input$plot3Data)
+    
+    plot3DF = read.csv(input$plot3Data$datapath)
+    exp0910CPlot3DF <<- plot3DF
+    
+    # update plot 3 graph with this new data
+    output$plot3 <- renderPlotly({
+      x_data = exp0910CPlot3DF[[1]]
+      y_data = exp0910CPlot3DF[[2]]
+      
+      x_min = min(x_data)
+      y_min = min(y_data) - 0.5
+      
+      df = data.frame(x_data, y_data)
+      
+      # get the time for color change
+      if(is.numeric(values$data[3,2])) {
+        cc_time = values$data[3,2]
+      } else {
+        cc_time = 240
+      }
+      
+      # get time at equivalence point
+      if(is.numeric(values$data[3,3])) {
+        eq_time = values$data[3,3]
+      } else {
+        eq_time = 250
+      }
+      
+      fig = getLinePlot(df, "HCl", "Time (seconds)", "pH", smooth = FALSE) %>%
+        add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
+        add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
+        add_segments(x = cc_time, xend = cc_time, y = y_min, yend = 12) %>%
+        layout(showlegend = FALSE)
+    })
+  })
+  
+  # handle uploading of data for plot 4
+  observeEvent(input$plot4Data, {
+    req(input$plot4Data)
+    
+    plot4DF = read.csv(input$plot4Data$datapath)
+    exp0910CPlot4DF <<- plot4DF
+    
+    # update plot 4 graph with this new data
+    output$plot4 <- renderPlotly({
+      x_data = exp0910CPlot4DF[[1]]
+      y_data = exp0910CPlot4DF[[2]]
+      
+      x_min = min(x_data)
+      y_min = min(y_data) - 0.5
+      
+      df = data.frame(x_data, y_data)
+      
+      # get the time for color change
+      if(is.numeric(values$data[4,2])) {
+        cc_time = values$data[4,2]
+      } else {
+        cc_time = 240
+      }
+      
+      # get time at equivalence point
+      if(is.numeric(values$data[4,3])) {
+        eq_time = values$data[4,3]
+      } else {
+        eq_time = 250
+      }
+      
+      fig = getLinePlot(df, "Acetic Acid", "Time (seconds)", "pH", smooth = FALSE) %>%
+        add_segments(x = x_min, xend = exp0910C.MaxTime, y = 9, yend = 9) %>%
+        add_segments(x = eq_time, xend = eq_time, y = y_min, yend = 12) %>%
+        add_segments(x = cc_time, xend = cc_time, y = y_min, yend = 12) %>%
+        layout(showlegend = FALSE)
+    })
+  })
   
   # handle llm generate button selection
   observeEvent(input$llmGenerate, {

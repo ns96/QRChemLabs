@@ -57,7 +57,7 @@ exp02C <- function(input, output, session, pin) {
     # plot the data
     output$plot1 <- renderPlotly({
       s.data = list(x1 = DF[[1]], y1 = DF[[2]], x2 = DF[[1]], y2 = DF[[3]])
-      fig = getSmoothPlot(s.data, "No. of Drops", "Relative Conductivity (uS)", n1 = "NaCl", n2="HC2H3O2")
+      fig = getConnectedScatterPlot(s.data, "No. of Drops", "Relative Conductivity (uS)", n1 = "NaCl", n2="HC2H3O2")
     })
     
     if(isAdminUser(pin)) {

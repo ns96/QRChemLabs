@@ -18,6 +18,13 @@ exp12CUI <- function(id) {
     fluidRow(
       box(width = 6, title = "Lemonade Trial", status = "primary",
         plotlyOutput(ns("plot1")),
+        downloadButton(ns("downloadPlot1Data"), "Download Plot Data"),
+        
+        fileInput(ns("plot1Data"), "Upload CSV File",
+                  multiple = FALSE,
+                  accept = c("text/csv",
+                             "text/comma-separated-values,text/plain",
+                             ".csv")),
         
         br(),
         
@@ -27,6 +34,13 @@ exp12CUI <- function(id) {
       
       box(width = 6, title = "Citric Acid Trial", status = "primary",
         plotlyOutput(ns("plot2")),
+        downloadButton(ns("downloadPlot2Data"), "Download Plot Data"),
+        
+        fileInput(ns("plot2Data"), "Upload CSV File",
+                  multiple = FALSE,
+                  accept = c("text/csv",
+                             "text/comma-separated-values,text/plain",
+                             ".csv")),
         
         br(),
         
@@ -57,7 +71,7 @@ exp12CUI <- function(id) {
 
 # Server code
 exp12C <- function(input, output, session, pin) {
-  # render the datatable
+  # render the data table
   output$hot1 <- renderRHandsontable({
     if (!is.null(input$hot1)) {
       DF = hot_to_r(input$hot1)
@@ -77,10 +91,38 @@ exp12C <- function(input, output, session, pin) {
     rhandsontable(DF, stretchH = "all", readOnly = FALSE)
   })
   
+  # Download plot 1 data
+  output$downloadPlot1Data <- downloadHandler(
+    filename = function() {
+      paste0("Experiment12C_Plot1-", pin, ".csv")
+    },
+    content = function(file) {
+      x_data = getPlotDataExp12C('L_NaOH_X')
+      y_data = getPlotDataExp12C('L_pH_Y')
+
+      df = data.frame(Volume_mL = x_data, pH = y_data)
+      write.csv(df, file, row.names = FALSE)
+    }
+  )
+  
+  # download plot 2 data
+  output$downloadPlot2Data <- downloadHandler(
+    filename = function() {
+      paste0("Experiment12C_Plot2-", pin, ".csv")
+    },
+    content = function(file) {
+      x_data = getPlotDataExp12C('CA_NaOH_X')
+      y_data = getPlotDataExp12C('CA_pH_Y')
+
+      df = data.frame(Volume_mL = x_data, pH = y_data)
+      write.csv(df, file, row.names = FALSE)
+    }
+  )
+  
   # Download the data to users computer as csv
   output$downloadData <- downloadHandler(
     filename = function() {
-      paste0("Experiment12_", pin, ".csv")
+      paste0("Experiment12C_", pin, ".csv")
     },
     content = function(file) {
       DF = hot_to_r(input$hot1)
@@ -110,6 +152,48 @@ exp12C <- function(input, output, session, pin) {
       layout(showlegend = FALSE)
   })
   
+  # handle uploading of data for plot 1
+  observeEvent(input$plot1Data, {
+    req(input$plot1Data)
+    
+    df = read.csv(input$plot1Data$datapath)
+    
+    exp12CL[['L_NaOH_X']] <<- df[[1]]
+    exp12CL[['L_pH_Y']] <<- df[[2]]
+    
+    # update plot 1 now
+    output$plot1 <- renderPlotly({
+      x_data = getPlotDataExp12C('L_NaOH_X')
+      y_data = getPlotDataExp12C('L_pH_Y')
+      
+      df = data.frame(x_data, y_data)
+      
+      fig = getLinePlot(df, " ", "Volume 0.1M NaOH (mL)", "pH", smooth = FALSE) %>%
+        layout(showlegend = FALSE)
+    })
+  })
+  
+  # handle uploading of data for plot 2
+  observeEvent(input$plot2Data, {
+    req(input$plot2Data)
+    
+    df = read.csv(input$plot2Data$datapath)
+    
+    exp12CL[['CA_NaOH_X']] <<- df[[1]]
+    exp12CL[['CA_pH_Y']] <<- df[[2]]
+    
+    # update plot 2 now
+    output$plot2 <- renderPlotly({
+      x_data = getPlotDataExp12C('CA_NaOH_X')
+      y_data = getPlotDataExp12C('CA_pH_Y')
+      
+      df = data.frame(x_data, y_data)
+      
+      fig = getLinePlot(df, " ", "Volume 0.1M NaOH (mL)", "pH", smooth = FALSE) %>%
+        layout(showlegend = FALSE)
+    })
+  })
+  
   # handle llm generate button selection
   observeEvent(input$llmGenerate, {
     # get the selected model and temperature
@@ -132,7 +216,7 @@ exp12C <- function(input, output, session, pin) {
   })
 }
 
-# function to return the colomn data
+# function to return the column data
 getPlotDataExp12C = function(columnName) {
   return(exp12CL[[columnName]])
 }

@@ -13,3 +13,9 @@ rsconnect/
 # Local editor / IDE files.
 .vscode/
 QRChem.Rproj
+
+# Generated reference data cache (contains the admin and dev pins) and its
+# temporary file from the atomic write. Regenerate with tools/make_reference_cache.R
+# before deploying.
+data/qrchem_cache.json
+data/qrchem_cache.json.tmp

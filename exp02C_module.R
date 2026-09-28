@@ -54,10 +54,11 @@ exp02C <- function(input, output, session, pin) {
       DF = getTableDataExp02C(pin)
     }
     
-    # plot the data
+    # plot the data: scatter markers with a linear fit line for each series
     output$plot1 <- renderPlotly({
-      s.data = list(x1 = DF[[1]], y1 = DF[[2]], x2 = DF[[1]], y2 = DF[[3]])
-      fig = getConnectedScatterPlot(s.data, "No. of Drops", "Relative Conductivity (uS)", n1 = "NaCl", n2="HC2H3O2")
+      plot.df = data.frame(x = DF[[1]], y1 = DF[[2]], y2 = DF[[3]])
+      fig = getScatterFitPlot(plot.df, "", "No. of Drops", "Relative Conductivity (uS)",
+                              n1 = "NaCl", n2 = "HC2H3O2")
     })
     
     if(isAdminUser(pin)) {

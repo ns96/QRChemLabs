@@ -19,6 +19,70 @@ getRegressionPlot = function(df, ptitle, xlabel, ylabel) {
   return(p)
 }
 
+# function to plot a scatter plot with a linear fit line for each of two series
+# df must have columns x, y1 and y2 -- the same shape getFittedLinePlot uses
+# the fit lines are hidden from the legend so only the series names show
+getScatterFitPlot = function(df, ptitle, xlabel, ylabel, n1 = "series 1", n2 = "series 2") {
+  # the rhandsontable round trip can hand these columns back as characters
+  x  = suppressWarnings(as.numeric(df$x))
+  y1 = suppressWarnings(as.numeric(df$y1))
+  y2 = suppressWarnings(as.numeric(df$y2))
+  
+  # colours so that each series and its fit line match
+  seriesColours = c("#1f77b4", "#d62728")
+  
+  # linear fit line for a series, or NULL when a fit is not possible
+  # (constant data, fewer than two distinct x values, all values missing, ...)
+  fitLineFor = function(y) {
+    usable = is.finite(x) & is.finite(y)
+    
+    if(sum(usable) < 2 || length(unique(x[usable])) < 2) {
+      return(NULL)
+    }
+    
+    tryCatch({
+      fit = lm(y[usable] ~ x[usable])
+      theLine = data.frame(x = x[usable], y = as.numeric(fitted(fit)))
+      
+      # order by x so the line does not zigzag back on itself
+      return(theLine[order(theLine$x), ])
+    }, error = function(error_message) {
+      cat("***Could not fit scatter series:", conditionMessage(error_message), "***\n")
+      return(NULL)
+    })
+  }
+  
+  line1 = fitLineFor(y1)
+  line2 = fitLineFor(y2)
+  
+  p <- plot_ly() %>%
+    add_trace(x = x, y = y1, name = n1, type = 'scatter', mode = 'markers',
+              marker = list(color = seriesColours[1]))
+  
+  if(!is.null(line1)) {
+    p <- p %>% add_trace(x = line1$x, y = line1$y, name = paste(n1, "fit"),
+                         type = 'scatter', mode = 'lines', showlegend = FALSE,
+                         line = list(color = seriesColours[1]))
+  }
+  
+  p <- p %>%
+    add_trace(x = x, y = y2, name = n2, type = 'scatter', mode = 'markers',
+              marker = list(color = seriesColours[2]))
+  
+  if(!is.null(line2)) {
+    p <- p %>% add_trace(x = line2$x, y = line2$y, name = paste(n2, "fit"),
+                         type = 'scatter', mode = 'lines', showlegend = FALSE,
+                         line = list(color = seriesColours[2]))
+  }
+  
+  p <- p %>%
+    layout(title = ptitle,
+           xaxis = list(title = xlabel),
+           yaxis = list(title = ylabel))
+  
+  return(p)
+}
+
 # function to plot a scatter plot along with a fitted line
 getFittedLinePlot = function(df, ptitle, xlabel, ylabel) {
   p <- plot_ly(df, x = ~x, y = ~y1, type = 'scatter', mode = 'markers') %>%
@@ -248,7 +312,10 @@ getCourseCodes = function() {
   if(!is.null(coursesDF)) {
     return(coursesDF[["Code"]])
   } else {
-    return(c("D001", "D003", "D005"))
+    # no live data and no usable cache: show nothing rather than the old dummy
+    # codes, which would have let made-up pins through as valid logins
+    cat("***No course data available -- course list is empty***\n")
+    return(character(0))
   }
 }
 
@@ -257,7 +324,8 @@ isAdminUser = function(pin) {
   # only take the last 4 characters of the pin
   pin = substr(pin, nchar(pin)-3, nchar(pin))
   
-  if(grepl(adminPin, pin, fixed = T)) {
+  # require a usable admin pin, otherwise grepl("") would match every pin
+  if(!is.null(adminPin) && nzchar(adminPin) && grepl(adminPin, pin, fixed = T)) {
     return(TRUE)
   } else if(pin %in% devPins) {
     return(TRUE)
@@ -279,23 +347,22 @@ showSampleData = function(pin) {
 getValidPins = function() {
   pins = vector()
   
-  if(!is.null(coursesDF)) {
+  if(!is.null(coursesDF) && nrow(coursesDF) > 0) {
     # process row in for loop.  should really be done using apply, but this
     # code is just more reliable, not to mention dataset is small enough
     # not to cause any performance problems?
+    #
+    # accessed by name so that the live course frame and the cached course frame
+    # (which has no ID column) behave identically
     for(i in 1:nrow(coursesDF)) {
       row <- coursesDF[i, ]
-      pins = c(pins, getCoursePins(row[2], row[4]))
+      pins = c(pins, getCoursePins(row$Code, row$Locker))
     }
   } else {
-    # load dummy or hard coded values
-    courseCodes = c("D001", "D003", "D005")
-    courseLockers = c("B", "F", "H")
-  
-    # Set valid pins. TO-DO These needs to be read from server
-    pins = c(pins, getCoursePins(courseCodes[1], courseLockers[1]))
-    pins = c(pins, getCoursePins(courseCodes[2], courseLockers[2]))
-    pins = c(pins, getCoursePins(courseCodes[3], courseLockers[3]))
+    # no live data and no usable cache: accept no pins rather than the old
+    # hard-coded dummy courses, which would have let made-up pins log in
+    cat("***No course data available -- no valid pins***\n")
+    pins = character(0)
   }
   
   return(pins)
@@ -323,42 +390,215 @@ courseTable = mysql$courseTable
 semesterTable = mysql$semesterTable
 userPinTable = mysql$userPinTable
 
+#
+# Reference data cache (semester / courses / pins)
+#
+# Written after every successful live read and read back only when the database
+# is unreachable.  This lets the app start and validate logins during an outage.
+#
+# The cache lives in the app bundle, so the copy generated at deploy time is what
+# the hosted app falls back to.  Writes made while the app is running are NOT
+# durable on shinyapps.io (ephemeral filesystem) -- only on a real disk (local
+# dev, own VM).  Regenerate before deploying with:
+#     Rscript tools/make_reference_cache.R
+#
+
+referenceCachePath = "data/qrchem_cache.json"
+referenceCacheVersion = 1L
+
+# set to TRUE by any loader that had to fall back to the cache
+referenceFromCache = FALSE
+
+# Should the cache be refreshed on this run?
+#
+# Refreshing happens automatically whenever the app runs on a desktop, so there is
+# no separate step to remember before deploying.  It is skipped on hosted Posit
+# platforms (shinyapps.io / Connect) where the filesystem is ephemeral and the
+# cache shipped inside the bundle must not be rewritten at runtime.
+#
+# Override with QRCHEM_WRITE_CACHE=1 to force on, or =0 to force off.
+shouldWriteReferenceCache = function() {
+  override = Sys.getenv("QRCHEM_WRITE_CACHE", unset = NA_character_)
+  if(!is.na(override)) {
+    return(identical(override, "1"))
+  }
+
+  # hosted Posit platforms -- ephemeral filesystem, leave the bundled cache alone
+  if(nzchar(Sys.getenv("RSTUDIO_PRODUCT"))) {
+    return(FALSE)
+  }
+  if(nzchar(Sys.getenv("SHINYAPPS_ACCOUNT"))) {
+    return(FALSE)
+  }
+  if(nzchar(Sys.getenv("CONNECT_SERVER"))) {
+    return(FALSE)
+  }
+
+  # desktop (or an own server with a real disk) -- keep the cache fresh
+  return(TRUE)
+}
+
+# read the cached reference data; returns NULL when unavailable or invalid
+readReferenceCache = function() {
+  tryCatch({
+    if(!file.exists(referenceCachePath)) {
+      cat("No reference cache at", referenceCachePath, "\n")
+      return(NULL)
+    }
+
+    cache = fromJSON(referenceCachePath, simplifyDataFrame = TRUE)
+
+    # validate before trusting it
+    if(is.null(cache$schemaVersion) || cache$schemaVersion != referenceCacheVersion) {
+      cat("***Reference cache ignored: unsupported schema version***\n")
+      return(NULL)
+    }
+
+    if(is.null(cache$semester) || !nzchar(cache$semester)) {
+      cat("***Reference cache ignored: no semester***\n")
+      return(NULL)
+    }
+
+    cat("Using reference cache generated", cache$generatedAt, "\n")
+    return(cache)
+  },
+  error = function(error_message) {
+    cat("***Reference cache unreadable:", conditionMessage(error_message), "***\n")
+    NULL
+  })
+}
+
+# build the course data.frame from the cache; NULL when unavailable
+cachedCourses = function() {
+  cache = readReferenceCache()
+  if(is.null(cache)) {
+    return(NULL)
+  }
+
+  referenceFromCache <<- TRUE
+
+  courses = cache$courses
+  if(is.null(courses) || length(courses) == 0) {
+    cat("***Reference cache has no courses***\n")
+    return(NULL)
+  }
+
+  if(!is.data.frame(courses)) {
+    courses = as.data.frame(courses, stringsAsFactors = FALSE)
+  }
+
+  rownames(courses) = NULL
+  return(courses)
+}
+
+# write the current live reference data to the cache (atomic)
+writeReferenceCache = function() {
+  # never overwrite the cache with values that came from the cache
+  if(referenceFromCache) {
+    cat("Reference data came from the cache - not rewriting it\n")
+    return(invisible(FALSE))
+  }
+
+  tryCatch({
+    snapshot = list(
+      schemaVersion = referenceCacheVersion,
+      generatedAt = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
+      source = "mysql",
+      semester = as.character(currentSemester),
+      # only the columns the app needs, so the cached frame matches the live one
+      courses = if(is.null(coursesDF)) {
+        data.frame(Code = character(0), Semester = character(0), Locker = character(0),
+                   stringsAsFactors = FALSE)
+      } else {
+        data.frame(
+          Code = as.character(coursesDF$Code),
+          Semester = as.character(coursesDF$Semester),
+          Locker = as.character(coursesDF$Locker),
+          stringsAsFactors = FALSE
+        )
+      },
+      pins = list(
+        admin = if(is.null(adminPin)) "" else as.character(adminPin),
+        dev = as.character(devPins)
+      )
+    )
+
+    json = toJSON(snapshot, auto_unbox = TRUE, na = "null", null = "null")
+
+    tmpPath = paste0(referenceCachePath, ".tmp")
+    writeLines(json, tmpPath, useBytes = TRUE)
+
+    # atomic swap so a crash can never leave a truncated cache behind
+    if(file.exists(referenceCachePath)) {
+      file.remove(referenceCachePath)
+    }
+    file.rename(tmpPath, referenceCachePath)
+
+    cat("Reference cache written:", referenceCachePath, "\n")
+    invisible(TRUE)
+  },
+  error = function(error_message) {
+    cat("***Could not write reference cache:", conditionMessage(error_message), "***\n")
+    invisible(FALSE)
+  })
+}
+
 # load the admin and dev pins and other pins from the database
 loadPinsFromDB = function() {
-  # connect to database
-  db <- dbConnect(MariaDB(), dbname = databaseName, host = mysql$host, 
-                  port = mysql$port, user = mysql$user, password = mysql$password)
+  db = NULL
   
-  query <- sprintf("SELECT * FROM %s", userPinTable)
-  
-  print(query)
-  
-  # Submit the update query and disconnect
-  df <- dbGetQuery(db, query)
-  dbDisconnect(db)
-  
-  # iterate through return pins and place them in the correct global variable
-  for(i in 1:nrow(df)) {
-    row <- df[i, ]
+  tryCatch( {
+    # connect to database
+    db <- dbConnect(MariaDB(), dbname = databaseName, host = mysql$host, 
+                    port = mysql$port, user = mysql$user, password = mysql$password)
     
-    # check if the pin is the admin pin
-    if(row[3] == 1) {
-      adminPin <<- row[2]
+    query <- sprintf("SELECT * FROM %s", userPinTable)
+    
+    print(query)
+    
+    # Submit the get query
+    df <- dbGetQuery(db, query)
+    
+    # iterate through return pins and place them in the correct global variable
+    for(i in 1:nrow(df)) {
+      row <- df[i, ]
+      
+      # check if the pin is the admin pin ([[ ]] to keep these plain strings)
+      if(row[[3]] == 1) {
+        adminPin <<- as.character(row[[2]])
+      }
+    
+      # get the dev pins
+      if(row[[4]] == 1) {
+        devPins <<- c(devPins, as.character(row[[2]]))
+      }
     }
-  
-    # get the dev pins
-    if(row[4] == 1) {
-      devPins <<- c(devPins, row[2])
+    
+    print(paste("Admin Pin:", adminPin))
+    print(paste("Dev Pins:", devPins))
+  },
+  error = function(error_message) {
+    print("***Error Reading From Database***")
+    print(error_message)
+    
+    # fall back to the cached admin and dev pins
+    cache = readReferenceCache()
+    if(!is.null(cache)) {
+      referenceFromCache <<- TRUE
+      adminPin <<- if(is.null(cache$pins$admin)) "" else as.character(cache$pins$admin)
+      devPins <<- as.character(unlist(cache$pins$dev))
+      cat("Using CACHED pins (admin set:", nzchar(adminPin), ", dev pins:", length(devPins), ")\n")
     }
-  }
-  
-  print(paste("Admin Pin:", adminPin))
-  print(paste("Dev Pins:", devPins))
+  },
+  finally = {
+    if(!is.null(db)) try(dbDisconnect(db), silent = TRUE)
+  })
 }
 
 # load the current semester from the database
 loadSemester = function() {
   currentSemester = "UNKNOWN"
+  db = NULL
   
   tryCatch( {
     # connect to database
@@ -369,24 +609,36 @@ loadSemester = function() {
     
     print(query)
     
-    # Submit the update query and disconnect
+    # Submit the get query (connection is closed in the finally block below)
     df <- dbGetQuery(db, query)
-    dbDisconnect(db)
     
-    currentSemester <- df[1, 2]
+    currentSemester <- as.character(df[[2]][1])
     print(paste("Current Semester:", currentSemester))
   },
   error = function(error_message) {
     print("***Error Reading From Database***")
     print(error_message)
-    dbDisconnect(db)
+    
+    # fall back to the cached semester so the app can still start
+    cache = readReferenceCache()
+    if(!is.null(cache)) {
+      currentSemester <<- cache$semester
+      referenceFromCache <<- TRUE
+      cat("Using CACHED semester:", currentSemester, "\n")
+    }
+  },
+  finally = {
+    if(!is.null(db)) try(dbDisconnect(db), silent = TRUE)
   })
   
   return(currentSemester)
 }
 
 # get dataframe with all the semesters
+# (currently unused, kept for reference)
 getSemesters = function() {
+  db = NULL
+  
   tryCatch( {
     # connect to database
     db <- dbConnect(MariaDB(), dbname = databaseName, host = mysql$host, 
@@ -396,21 +648,25 @@ getSemesters = function() {
     
     print(query)
     
-    # Submit the update query and disconnect
+    # Submit the get query
     df <- dbGetQuery(db, query)
-    dbDisconnect(db)
     
     return(df)
   },
   error = function(error_message) {
     print("***Error Reading From Database***")
     print(error_message)
-    dbDisconnect(db)
+    return(NULL)
+  },
+  finally = {
+    if(!is.null(db)) try(dbDisconnect(db), silent = TRUE)
   })
 }
 
 # get valid pins for current semester from database
 loadCourses = function(semester) {
+  db = NULL
+  
   tryCatch( {
     # connect to database
     db <- dbConnect(MariaDB(), dbname = databaseName, host = mysql$host, 
@@ -420,17 +676,20 @@ loadCourses = function(semester) {
     
     print(query)
     
-    # Submit the update query and disconnect
+    # Submit the get query
     df <- dbGetQuery(db, query)
-    dbDisconnect(db)
     
     coursesDF <<- df # global dataframe variable
   },
   error = function(error_message) {
     print("***Error Reading From Database***")
     print(error_message)
-    dbDisconnect(db)
-    coursesDF <<- NULL # global dataframe variable set to null
+    
+    # fall back to the cached course list
+    coursesDF <<- cachedCourses()
+  },
+  finally = {
+    if(!is.null(db)) try(dbDisconnect(db), silent = TRUE)
   })
 }
 
@@ -439,6 +698,8 @@ saveToDB = function(pin, expName, questionList) {
   if(any(questionList == "" || anyNA(questionList))) {
     return("Missing Data / Not Saving ...")
   }
+  
+  db = NULL
   
   tryCatch( {
     jsonData = toJSON(questionList)
@@ -456,30 +717,34 @@ saveToDB = function(pin, expName, questionList) {
     
     print(query)
     
-    # Submit the update query and disconnect
+    # Submit the insert query
     dbExecute(db, query)
-    dbDisconnect(db)
     
     return("Data Saved ...")
   },
   error = function(error_message) {
     print("***Error Saving to Database***")
     print(error_message)
-    dbDisconnect(db)
-    return("Error Saving to Database")
+    # degrade gracefully: the experiment data is not persisted while the
+    # database is unavailable, but the app keeps working
+    return("Database unavailable -- data NOT saved")
   },
   warning = function(warning_message) {
     print("***Warning Saving to Database***")
     print(warning_message)
-    dbDisconnect(db)
     return("Warning Saving to Database")
+  },
+  finally = {
+    if(!is.null(db)) try(dbDisconnect(db), silent = TRUE)
   })
 }
 
 # function to load data from backend database
 loadFromDB = function(pin, expName) {
+  db = NULL
+  
   # check to see if to reset the pin to the adminPin
-  if(grepl(adminPin, pin)) {
+  if(!is.null(adminPin) && nzchar(adminPin) && grepl(adminPin, pin, fixed = TRUE)) {
     pin = adminPin
   }
   
@@ -499,22 +764,23 @@ loadFromDB = function(pin, expName) {
     
     print(query)
     
-    # Submit the get query and disconnect
+    # Submit the get query
     df <- dbGetQuery(db, query)
-    dbDisconnect(db)
     
     return(df)
   },
   error = function(error_message) {
     print("***Error Reading From Database***")
     print(error_message)
-    dbDisconnect(db)
     return(NULL)
   },
   warning = function(warning_message) {
     print("***Warning Reading from Database***")
     print(warning_message)
     return("Warning Reading From Database")
+  },
+  finally = {
+    if(!is.null(db)) try(dbDisconnect(db), silent = TRUE)
   })
 }
 

@@ -28,6 +28,12 @@ exp06CUI <- function(id) {
           br(),
           
           downloadButton(ns("downloadData"), "Download Data"),
+          
+          fileInput(ns("plot1Data"), "Upload CSV File",
+                    multiple = FALSE,
+                    accept = c("text/csv",
+                               "text/comma-separated-values,text/plain",
+                               ".csv"))
       ),
       
       box(width = 8, title = "Absorbance Plot", status = "primary",
@@ -67,7 +73,7 @@ exp06CUI <- function(id) {
 
 # Server code
 exp06C <- function(input, output, session, pin) {
-  # render the datatable
+  # render the data table
   output$hot <- renderRHandsontable({
     if (!is.null(input$hot)) {
       exp06CDF <<- hot_to_r(input$hot)
@@ -119,36 +125,7 @@ exp06C <- function(input, output, session, pin) {
     }
     
     # display the results in admin or instructor
-    if(isAdminUser(pin)) {
-      fit.numbers = doLinearFit(x_data, y_data)
-      rate.constant = -1*fit.numbers$slope
-      
-      if(reactionOrder == 'First') {
-        half.life = 0.693/rate.constant
-      } else {
-        half.life = 0
-      }
-      
-      # store the results for sending to llm for abstract generation
-      resultsExp06CDF <<- data.frame(
-        "Temperature (C)" = input$temp,
-        "Reaction Order" = reactionOrder,
-        "Slope" = formatC(fit.numbers$slope, format="f", digits = 6),
-        "R^2" = formatC(fit.numbers$rsquare, format = "f", digits = 3),
-        "Rate Constant (M/s)" = formatC(rate.constant, format="f", digits = 6),
-        "Half Life (s)" = formatC(half.life, format = "d")
-      )
-      
-      output$v1 <- renderText({ 
-        paste("Slope:", formatC(fit.numbers$slope, format="f", digits = 6),
-              " || R^2:", formatC(fit.numbers$rsquare, format = "f", digits = 3),
-              " || k(M/s):", formatC(rate.constant, format="f", digits = 6), 
-              " || Half Life (s):", formatC(half.life, format = "d"))
-      })
-    } else {
-      # clear the output, mainly for debugging
-      output$v1 <- renderText({""})
-    }
+    displayFitResultsExp06C(input, output, pin, x_data, y_data)
     
     df = data.frame(x_data, y_data)
     getLinePlot(df, plotTitle, "Time (seconds)", yaxisTitle)
@@ -164,6 +141,67 @@ exp06C <- function(input, output, session, pin) {
       write.csv(DF, file, row.names = FALSE)
     }
   )
+  
+  # handle uploaded data file for plot 1
+  observeEvent(input$plot1Data, {
+    req(input$plot1Data)
+    
+    # read the uploaded file
+    inFile <- input$plot1Data
+    exp06CDF <- read.csv(inFile$datapath)
+    
+    # name columns the standard names
+    colnames(exp06CDF) <<- c("Time.Minutes", "Absorbance.Value")
+    
+    # update the data table
+    output$hot <- renderRHandsontable({
+      output$vhot1 <- renderText({
+        paste("Data Version: Uploaded File")
+      })
+      
+      rhandsontable(exp06CDF, stretchH = "all")
+    })
+    
+    # update plot 1 now
+    output$plot1 <- renderPlotly({
+      x_data = exp06CDF[['Time.Minutes']]
+      y_data = exp06CDF[['Absorbance.Value']]
+      df = data.frame(x_data,y_data)
+      
+      fig = getLinePlot(df, "", "Time (minutes)", "Absorbance")
+    })
+    
+    # update plot 2 now
+    output$plot2 <- renderPlotly({
+      reactionOrder = input$si1
+      cat('Reaction Order:', reactionOrder, "\n")
+      
+      # convert time to seconds
+      x_data = exp06CDF[['Time.Minutes']]*60
+      
+      if(reactionOrder == 'Zero') {
+        y_data = exp06CDF[['Absorbance.Value']]
+        plotTitle = "Zero Order || [Cv+] vs time"
+        yaxisTitle = "Asorbance"
+      } else if(reactionOrder == 'First') {
+        y_data = log(exp06CDF[['Absorbance.Value']])
+        plotTitle = "First Order || ln([Cv+]) vs time"
+        yaxisTitle = "ln(Asorbance)"
+      } else {
+        y_data = 1/exp06CDF[['Absorbance.Value']]
+        plotTitle = "Second Order || 1/[Cv+] vs time"
+        yaxisTitle = "1/Asorbance"
+      }
+      
+      # display fit results, only if admin though
+      displayFitResultsExp06C(input, output, pin, x_data, y_data)
+      
+      df = data.frame(x_data, y_data)
+      getLinePlot(df, plotTitle, "Time (seconds)", yaxisTitle)
+    })
+    
+    cat("Uploaded data file processed for Experiment 06C\n")
+  })
   
   # returns the data for a particular experiment
   savedDataTable <- reactive({
@@ -205,6 +243,42 @@ exp06C <- function(input, output, session, pin) {
     # display the abstract after call the LLM API
     displayAbstract(abstractPrompt, model, temp, pin)
   })
+}
+
+# function to display fit results
+displayFitResultsExp06C = function(input, output, pin, x_data, y_data) {
+  if(isAdminUser(pin)) {
+    fit.numbers = doLinearFit(x_data, y_data)
+    rate.constant = -1*fit.numbers$slope
+    
+    reactionOrder = input$si1
+    
+    if(reactionOrder == 'First') {
+      half.life = 0.693/rate.constant
+    } else {
+      half.life = 0
+    }
+    
+    # store the results for sending to llm for abstract generation
+    resultsExp06CDF <<- data.frame(
+      "Temperature (C)" = input$temp,
+      "Reaction Order" = reactionOrder,
+      "Slope" = formatC(fit.numbers$slope, format="f", digits = 6),
+      "R^2" = formatC(fit.numbers$rsquare, format = "f", digits = 3),
+      "Rate Constant (M/s)" = formatC(rate.constant, format="f", digits = 6),
+      "Half Life (s)" = formatC(half.life, format = "d")
+    )
+    
+    output$v1 <- renderText({ 
+      paste("Slope:", formatC(fit.numbers$slope, format="f", digits = 6),
+            " || R^2:", formatC(fit.numbers$rsquare, format = "f", digits = 3),
+            " || k(M/s):", formatC(rate.constant, format="f", digits = 6), 
+            " || Half Life (s):", formatC(half.life, format = "d"))
+    })
+  } else {
+    # clear the output, mainly for debugging
+    output$v1 <- renderText({""})
+  }
 }
 
 # function to return random data set

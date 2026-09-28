@@ -2,3 +2,14 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Local config containing secrets (DB credentials, LLM API keys).
+# The placeholder template is tracked as config.bak.yml.
+config.yml
+
+# shinyapps.io / Posit Connect deployment metadata.
+rsconnect/
+
+# Local editor / IDE files.
+.vscode/
+QRChem.Rproj

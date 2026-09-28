@@ -16,7 +16,7 @@ exp11CUI <- function(id) {
     h3("Experiment 11 -- DETERMINING THE KSP OF CALCIUM HYDROXIDE"),
     
     fluidRow(
-      box(width = 6, title = paste("Trial One / 20 mL Ca(OH)2"), status = "primary",
+      box(width = 6, title = paste("Trial One / 15 or 20 mL Ca(OH)2"), status = "primary",
         plotlyOutput(ns("plot1")),
         downloadButton(ns("downloadPlot1Data"), "Download Plot Data"),
         
@@ -38,7 +38,7 @@ exp11CUI <- function(id) {
         numericInput(ns("room.temp"), "Room Temperature (C):", value = "25"),
       ),
       
-      box(width = 6, title = paste("Trial Two / 20 mL Ca(OH)2"), status = "primary",
+      box(width = 6, title = paste("Trial Two / 15 or 20 mL Ca(OH)2"), status = "primary",
         plotlyOutput(ns("plot3")),
         downloadButton(ns("downloadPlot3Data"), "Download Plot Data"),
         
@@ -57,7 +57,8 @@ exp11CUI <- function(id) {
         
         numericInput(ns("hcl.Conc"), "HCl Concentration (M):", value = "0.050"),
         
-        selectInput(ns("literature.Ksp"), "Excepted Ksp Value:", c("5.02E-6", "7.9E-6", "4.42E-5"))
+        selectInput(ns("literature.Ksp"), "Excepted Ksp Value:", 
+                    c("5.02E-6@25 degC", "7.9E-6@25 degC", "4.68E-6@25 degC", "5.5E-5@20 degC"))
       )
     ),
     
@@ -71,10 +72,10 @@ exp11CUI <- function(id) {
       
       hr(),
 
-      a("YouTube -- Determining the Ksp of Calcium Hydroxide", target="_blank", href="https://www.youtube.com/watch?v=-FF-D3cfST0"),
+      a("Watch On YouTube -- Determining the Ksp of Calcium Hydroxide", target="_blank", href="https://www.youtube.com/watch?v=-FF-D3cfST0"),
       br(),
       #HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/-FF-D3cfST0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
-      #br(),
+      br(),
       a("YouTube -- Analyzing Data from the Vernier Ksp of Calcium Hydroxide Lab", target="_blank", href="https://www.youtube.com/watch?v=KOIcjIGQU3U"),
       br(),
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/KOIcjIGQU3U" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
@@ -83,7 +84,9 @@ exp11CUI <- function(id) {
       br(),
       HTML('<iframe width="560" height="315" src="https://www.youtube.com/embed/fPoo_o6TCGc" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
       br(),
-      a("Solubility Product Constants near 25 degC", target="_blank", href="https://www.chm.uri.edu/weuler/chm112/refmater/KspTable.html")
+      a("Solubility Product Constants near 25 degC", target="_blank", href="https://www.chm.uri.edu/weuler/chm112/refmater/KspTable.html"),
+      br(),
+      br()
     ),
     
     # add UI elements to send prompts to LLM API for Abstract generation
@@ -101,9 +104,11 @@ exp11C <- function(input, output, session, pin) {
     conc.HCl <<- as.numeric(input$hcl.Conc)
       
     if(!is.na(trial1.mL) && !is.na(trial1.mL)) {
-      # get the selected literature value for ksp
-      literature.Ksp = input$literature.Ksp
-      
+      # get the selected literature value for ksp which have the ksp value with
+      # the temperature appended with the temperature separated by '@'
+      literature.Ksp = strsplit(input$literature.Ksp, "@")[[1]][1]
+      print(paste("Literature Ksp:", literature.Ksp))
+  
       df = getTableDataExp11C(trial1.mL, trial2.mL, literature.Ksp, pin)
       rhandsontable(df, stretchH = "all", readOnly = FALSE)
     }

@@ -67,16 +67,21 @@ exp13CUI <- function(id) {
 
 # Server code
 exp13C <- function(input, output, session, pin) {
-  # render the data table
+  # single source of truth for the experiment table; seeded once per session
+  values <- reactiveValues(data = getTableDataExp13C(pin))
+  
+  # keep the reactive data in sync with table edits so the results columns and
+  # the plots always reflect what the student has entered
+  observeEvent(input$hot1, {
+    values$data <- hot_to_r(input$hot1)
+  })
+  
+  # render the data table, filling in the calculated results for admin users
   output$hot1 <- renderRHandsontable({
-    if (!is.null(input$hot1)) {
-      DF = hot_to_r(input$hot1)
-
-      if(isAdminUser(pin)) {
-        DF = getResultsExp13C(DF)
-      }
-    } else {
-      DF = getTableDataExp13C(pin)
+    DF = values$data
+    
+    if(isAdminUser(pin)) {
+      DF = getResultsExp13C(DF)
     }
     
     output$vhot1 <- renderText({paste("Data Version:", dataNumberExp13C)})
@@ -95,18 +100,20 @@ exp13C <- function(input, output, session, pin) {
     }
   )
   
-  # Display plot # 1 of temperature change
+  # Display plot # 1 of temperature change, reacting to table edits
   output$plot1 <- renderPlotly({
+    DF = values$data
     x = c("1. Initial Temperature", "2. Final Temperature")
-    y = c(expData13L$Reaction1.T1, expData13L$Reaction1.T2)
+    y = c(as.numeric(DF[3,2]), as.numeric(DF[2,2]))
     
     fig = getBarPlot(x, y, "Temperature Change")
   })
 
-  # Display the plot # 2 of temperature change
+  # Display the plot # 2 of temperature change, reacting to table edits
   output$plot2 <- renderPlotly({
+    DF = values$data
     x = c("1. Initial Temperature", "2. Final Temperature")
-    y = c(expData13L$Reaction2.T1, expData13L$Reaction2.T2)
+    y = c(as.numeric(DF[3,3]), as.numeric(DF[2,3]))
     
     fig = getBarPlot(x, y, "Temperature Change")
   })

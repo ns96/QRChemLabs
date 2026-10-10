@@ -73,53 +73,54 @@ exp06CUI <- function(id) {
 
 # Server code
 exp06C <- function(input, output, session, pin) {
+  # single source of truth for the experiment table; seeded once per session
+  values <- reactiveValues(data = getTableDataExp06C(pin), label = NULL)
+  
+  # keep the reactive data in sync with table edits so the plots and the fit
+  # results always reflect the data on screen
+  observeEvent(input$hot, {
+    values$data <- hot_to_r(input$hot)
+  })
+  
   # render the data table
   output$hot <- renderRHandsontable({
-    if (!is.null(input$hot)) {
-      exp06CDF <<- hot_to_r(input$hot)
-    } else {
-      getTableDataExp06C(pin)
+    label = values$label
+    if(is.null(label)) {
+      label = paste("Data Version:", dataNumberExp06C)
     }
     
-    output$vhot1 <- renderText({paste("Data Version:", dataNumberExp06C)})
-      
-    rhandsontable(exp06CDF, stretchH = "all")
+    output$vhot1 <- renderText({label})
+    
+    rhandsontable(values$data, stretchH = "all")
   })
   
-  # Display the simulated plot data
+  # Display the simulated plot data, reacting to table edits
   output$plot1 <- renderPlotly({
-    if (is.null(exp06CDF)) {
-      getTableDataExp06C()    
-    }
-
-    x_data = exp06CDF[['Time.Minutes']]
-    y_data = exp06CDF[['Absorbance.Value']]
-    df = data.frame(x_data,y_data)
+    df = values$data
+    x_data = df[['Time.Minutes']]
+    y_data = df[['Absorbance.Value']]
     
-    fig = getLinePlot(df, "", "Time (minutes)", "Absorbance")
+    fig = getLinePlot(data.frame(x_data, y_data), "", "Time (minutes)", "Absorbance")
   })
   
-  # Display the simulated plot data
+  # Display the simulated plot data, reacting to table edits
   output$plot2 <- renderPlotly({
-    if (is.null(exp06CDF)) {
-      getTableDataExp06C()    
-    }
-    
+    df = values$data
     reactionOrder = input$si1
     cat('Reaction Order:', reactionOrder, "\n")
     
-    x_data = exp06CDF[['Time.Minutes']]*60
-
+    x_data = df[['Time.Minutes']]*60
+    
     if(reactionOrder == 'Zero') {
-      y_data = exp06CDF[['Absorbance.Value']]
+      y_data = df[['Absorbance.Value']]
       plotTitle = "Zero Order || [Cv+] vs time"
       yaxisTitle = "Asorbance"
     } else if(reactionOrder == 'First') {
-      y_data = log(exp06CDF[['Absorbance.Value']])
+      y_data = log(df[['Absorbance.Value']])
       plotTitle = "First Order || ln([Cv+]) vs time"
       yaxisTitle = "ln(Asorbance)"
     } else {
-      y_data = 1/exp06CDF[['Absorbance.Value']]
+      y_data = 1/df[['Absorbance.Value']]
       plotTitle = "Second Order || 1/[Cv+] vs time"
       yaxisTitle = "1/Asorbance"
     }
@@ -127,8 +128,7 @@ exp06C <- function(input, output, session, pin) {
     # display the results in admin or instructor
     displayFitResultsExp06C(input, output, pin, x_data, y_data)
     
-    df = data.frame(x_data, y_data)
-    getLinePlot(df, plotTitle, "Time (seconds)", yaxisTitle)
+    getLinePlot(data.frame(x_data, y_data), plotTitle, "Time (seconds)", yaxisTitle)
   })
   
   # Download the data to users computer as csv
@@ -146,59 +146,15 @@ exp06C <- function(input, output, session, pin) {
   observeEvent(input$plot1Data, {
     req(input$plot1Data)
     
-    # read the uploaded file
+    # read the uploaded file and make it the table data
     inFile <- input$plot1Data
-    exp06CDF <- read.csv(inFile$datapath)
+    uploadDF <- read.csv(inFile$datapath)
     
     # name columns the standard names
-    colnames(exp06CDF) <<- c("Time.Minutes", "Absorbance.Value")
+    colnames(uploadDF) <- c("Time.Minutes", "Absorbance.Value")
     
-    # update the data table
-    output$hot <- renderRHandsontable({
-      output$vhot1 <- renderText({
-        paste("Data Version: Uploaded File")
-      })
-      
-      rhandsontable(exp06CDF, stretchH = "all")
-    })
-    
-    # update plot 1 now
-    output$plot1 <- renderPlotly({
-      x_data = exp06CDF[['Time.Minutes']]
-      y_data = exp06CDF[['Absorbance.Value']]
-      df = data.frame(x_data,y_data)
-      
-      fig = getLinePlot(df, "", "Time (minutes)", "Absorbance")
-    })
-    
-    # update plot 2 now
-    output$plot2 <- renderPlotly({
-      reactionOrder = input$si1
-      cat('Reaction Order:', reactionOrder, "\n")
-      
-      # convert time to seconds
-      x_data = exp06CDF[['Time.Minutes']]*60
-      
-      if(reactionOrder == 'Zero') {
-        y_data = exp06CDF[['Absorbance.Value']]
-        plotTitle = "Zero Order || [Cv+] vs time"
-        yaxisTitle = "Asorbance"
-      } else if(reactionOrder == 'First') {
-        y_data = log(exp06CDF[['Absorbance.Value']])
-        plotTitle = "First Order || ln([Cv+]) vs time"
-        yaxisTitle = "ln(Asorbance)"
-      } else {
-        y_data = 1/exp06CDF[['Absorbance.Value']]
-        plotTitle = "Second Order || 1/[Cv+] vs time"
-        yaxisTitle = "1/Asorbance"
-      }
-      
-      # display fit results, only if admin though
-      displayFitResultsExp06C(input, output, pin, x_data, y_data)
-      
-      df = data.frame(x_data, y_data)
-      getLinePlot(df, plotTitle, "Time (seconds)", yaxisTitle)
-    })
+    values$label <- "Data Version: Uploaded File"
+    values$data <- uploadDF
     
     cat("Uploaded data file processed for Experiment 06C\n")
   })
@@ -306,9 +262,6 @@ getDataExp06C = function() {
 
 # function to get the initial data
 getTableDataExp06C = function(pin) {
-  #Time.Minutes = seq(0, 20, by=0.5)
-  #Absorbance.Value = runif(length(Time.Minutes), 0.15, 0.34)
-  
   expData = getDataExp06C()  
   Time.Minutes = addNoise(expData$actual.Time, 0.01)
   Absorbance.Value = addNoise(expData$actual.Absorbance, 0.02)
@@ -318,6 +271,5 @@ getTableDataExp06C = function(pin) {
     Absorbance.Value = runif(length(Time.Minutes), 0.15, 0.34)  
   }
   
-  exp06CDF <<- data.frame(Time.Minutes, Absorbance.Value)
-  exp06CDF2 <<- data.frame(expData$actual.Time, expData$actual.Absorbance) # used for debugging
+  return(data.frame(Time.Minutes, Absorbance.Value))
 }

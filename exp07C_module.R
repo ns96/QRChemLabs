@@ -69,23 +69,26 @@ exp07CUI <- function(id) {
 
 # Server code
 exp07C <- function(input, output, session, pin) {
-  # render the experiment data table
-  output$hot1 <- renderRHandsontable({
-    if (!is.null(input$hot1)) {
-      exp07CDF <<- hot_to_r(input$hot1)
-    } else {
-      getTableDataExp07C(pin)
-    }
-    
-    output$vhot1 <- renderText({paste("Data Version:", dataNumberExp07C)})
-    
-    rhandsontable(exp07CDF, stretchH = "all")
+  # single source of truth for the experiment table; seeded once per session
+  values <- reactiveValues(data = getTableDataExp07C(pin))
+  
+  # keep the reactive data in sync with table edits so the Kc results and the
+  # plot always reflect what the student has entered
+  observeEvent(input$hot1, {
+    values$data <- hot_to_r(input$hot1)
   })
   
-  # render the results data table
+  # render the experiment data table
+  output$hot1 <- renderRHandsontable({
+    output$vhot1 <- renderText({paste("Data Version:", dataNumberExp07C)})
+    
+    rhandsontable(values$data, stretchH = "all")
+  })
+  
+  # render the results data table, recalculated from the edited data
   output$hot2 <- renderRHandsontable({
     if(isAdminUser(pin)) {
-      df = getResultsExp07C()    
+      df = getResultsExp07C(values$data)
       
       # get the average
       avgKc <<- round(rowMeans(df)[6])
@@ -99,17 +102,13 @@ exp07C <- function(input, output, session, pin) {
     }
   })
   
-  # Display the simulated plot data
+  # Display the simulated plot data, reacting to table edits
   output$plot1 <- renderPlotly({
-    if (is.null(exp07CDF)) {
-      getTableDataExp07C()    
-    }
-    
     # update the temperature
     updateTextInput(session, "q1", value = Exp07C.Temperature)
     
-    x = exp07CDF[['Trial.Name']]
-    y = exp07CDF[['Absorbance.Value']]
+    x = values$data[['Trial.Name']]
+    y = values$data[['Absorbance.Value']]
     
     fig = getBarPlot(x, y, "Absorbance for Trials")
   })
@@ -155,10 +154,10 @@ exp07C <- function(input, output, session, pin) {
 }
 
 # calculate Kc for a trial
-calculateKc = function(trial) {
+calculateKc = function(DF, trial) {
   Fe3i = (5/10)*0.002
   SCNi = ((trial + 1)/10)*0.002
-  FeSCN2eq = (exp07CDF[[2]][trial]/exp07CDF[[2]][5])*0.0002
+  FeSCN2eq = (as.numeric(DF[[2]][trial])/as.numeric(DF[[2]][5]))*0.0002
   Fe3eq = Fe3i - FeSCN2eq
   SCNeq = SCNi - FeSCN2eq
   Kc = FeSCN2eq/(Fe3eq * SCNeq)
@@ -166,12 +165,12 @@ calculateKc = function(trial) {
 }
 
 # calculate the Kc Values
-getResultsExp07C = function() {
+getResultsExp07C = function(DF) {
   Variable = c("[Fe3+]i","[SCN-]i", "[FeSCN2+]eq", "[Fe3+]eq", "[SCN-]eq", "Kc")
-  Trial.1 = calculateKc(1)
-  Trial.2 = calculateKc(2)
-  Trial.3 = calculateKc(3)
-  Trial.4 = calculateKc(4)
+  Trial.1 = calculateKc(DF, 1)
+  Trial.2 = calculateKc(DF, 2)
+  Trial.3 = calculateKc(DF, 3)
+  Trial.4 = calculateKc(DF, 4)
   
   df = data.frame(Trial.1, Trial.2, Trial.3, Trial.4)
   row.names(df) <- Variable

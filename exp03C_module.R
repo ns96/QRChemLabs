@@ -45,38 +45,41 @@ exp03CUI <- function(id) {
 
 # Server code
 exp03C <- function(input, output, session, pin) {
-  # render the data table for electrolytes
+  # single source of truth for the experiment table; seeded once per session
+  values <- reactiveValues(data = getTableDataExp03C(pin))
+  
+  # keep the reactive data in sync with table edits so the plot and the
+  # calculated results always reflect what the student has entered
+  observeEvent(input$hot1, {
+    values$data <- hot_to_r(input$hot1)
+  })
+  
+  # render the data table
   output$hot1 <- renderRHandsontable({
-    if (!is.null(input$hot1)) {
-      DF = hot_to_r(input$hot1)
-    } else {
-      DF = getTableDataExp03C(pin)
+    rhandsontable(values$data, stretchH = "all", rowHeaders = FALSE)
+  })
+  
+  # plot the standard calibration data, reacting to table edits
+  output$plot1 <- renderPlotly({
+    plot.df = getStandardDataExp03C(values$data)
+    
+    # not enough valid standard data yet (e.g. cells cleared) -- show an empty plot
+    if(nrow(plot.df) < 2 || length(unique(plot.df$x)) < 2) {
+      return(plotly_empty() %>% layout(title = "Standard Plot",
+                                       xaxis = list(title = "NiSO4 Concentration (mol/L)"),
+                                       yaxis = list(title = "Absorbance")))
     }
     
-    # plot the data
-    output$plot1 <- renderPlotly({
-      x = c(0, 0.08, 0.16, 0.24, 0.32, 0.40) 
-      y = knownExp03C
-      
-      if(isAdminUser(pin)) {
-        fit.numbers = doLinearFit(x, y)
-        unknown.Conc = (unknownExp03C + fit.numbers$intercept) / fit.numbers$slope 
-        
-        resultsExp03C <<- paste0('Fit Results: Intercept -> ', 
-                                formatC(fit.numbers$intercept, format="f", digits = 6),
-                                ', Slope -> ', formatC(fit.numbers$slope, format="f", digits = 6),
-                                ', R-squared -> ', formatC(fit.numbers$rsquare, format = "f", digits = 3),
-                                ', Unknown Absorbance -> ', formatC(unknownExp03C, format = "f", digits = 3),
-                                ', Unknown Concentration -> ', formatC(unknown.Conc, format = "f", digits = 3))
-        
-        output$vhot1 <- renderText({ resultsExp03C })
-      }
-      
-      p.df = data.frame(x, y)
-      getRegressionPlot(p.df, "Standard Plot", "NiSO4 Concentration (mol/L)", "Absorbance")
-    })
+    getRegressionPlot(plot.df, "Standard Plot", "NiSO4 Concentration (mol/L)", "Absorbance")
+  })
+  
+  # display the calculated fit results to admin users, reacting to table edits
+  output$vhot1 <- renderText({
+    if(!isAdminUser(pin)) {
+      return(NULL)
+    }
     
-    rhandsontable(DF, stretchH = "all", rowHeaders = FALSE)
+    getFitResultsExp03C(values$data)
   })
   
   # Download the data to users computer as csv
@@ -112,6 +115,53 @@ exp03C <- function(input, output, session, pin) {
     # display the abstract after call the LLM API
     displayAbstract(abstractPrompt, model, temp, pin)
   })
+}
+
+# pull the standard (non-unknown) rows from the experiment table as numeric
+# concentration/absorbance pairs, dropping rows with blank or invalid entries
+getStandardDataExp03C = function(df) {
+  x = suppressWarnings(as.numeric(df[[4]]))   # Concentration NiSO4 (mol/L)
+  y = suppressWarnings(as.numeric(df[[5]]))   # ABSORBANCE
+  
+  # the unknown row holds no standard concentration, so leave it out of the fit
+  standards = is.finite(x) & is.finite(y) & df[[1]] != "Unknown"
+  
+  return(data.frame(x = x[standards], y = y[standards]))
+}
+
+# calculate the fit results and unknown concentration from the table values
+getFitResultsExp03C = function(df) {
+  plot.df = getStandardDataExp03C(df)
+  
+  if(nrow(plot.df) < 2 || length(unique(plot.df$x)) < 2) {
+    return("Fit Results: enter at least two standard concentrations and absorbances ...")
+  }
+  
+  fit.numbers = doLinearFit(plot.df$x, plot.df$y)
+  
+  # absorbance of the unknown row (its concentration cell is blank)
+  unknown.row = which(df[[1]] == "Unknown")
+  if(length(unknown.row) < 1) {
+    unknown.row = nrow(df)
+  }
+  
+  unknown.Abs = suppressWarnings(as.numeric(df[[5]][unknown.row[1]]))
+  
+  results = paste0('Fit Results: Intercept -> ',
+                   formatC(fit.numbers$intercept, format="f", digits = 6),
+                   ', Slope -> ', formatC(fit.numbers$slope, format="f", digits = 6),
+                   ', R-squared -> ', formatC(fit.numbers$rsquare, format = "f", digits = 3))
+  
+  # the unknown absorbance may not have been entered yet
+  if(!is.finite(unknown.Abs)) {
+    return(paste0(results, ', Unknown Absorbance -> not entered'))
+  }
+  
+  unknown.Conc = (unknown.Abs + fit.numbers$intercept) / fit.numbers$slope
+  
+  return(paste0(results,
+                ', Unknown Absorbance -> ', formatC(unknown.Abs, format = "f", digits = 3),
+                ', Unknown Concentration -> ', formatC(unknown.Conc, format = "f", digits = 3)))
 }
 
 # function to get the initial data for table 1

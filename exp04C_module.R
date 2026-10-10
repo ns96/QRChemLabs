@@ -55,42 +55,52 @@ exp04CUI <- function(id) {
 
 # Server code
 exp04C <- function(input, output, session, pin) {
-  # render the data table for experimental data
+  # single source of truth for the experiment table; seeded once per session
+  values <- reactiveValues(data = getTableDataExp04C(pin))
+  
+  # keep the reactive data in sync with table edits so the derived values, the
+  # results table and the plot always reflect what the student has entered
+  observeEvent(input$hot1, {
+    values$data <- hot_to_r(input$hot1)
+  })
+  
+  # the four measured values (t1, t2, V1, V2) taken from the edited table
+  measurements <- reactive({
+    getMeasurementsExp04C(values$data)
+  })
+  
+  # render the data table with the change in temperature and volume filled in
   output$hot1 <- renderRHandsontable({
-    if (!is.null(input$hot1)) {
-      DF = hot_to_r(input$hot1)
-    } else {
-      DF = getTableDataExp04C(pin)
-    }
+    DF = values$data
+    mv = measurements()
     
-    testDF <<- DF
     # check to see if to do calculations
     if(isAdminUser(pin)) {
-      deltaT = exp04CV[2] - exp04CV[1]
-      deltaV = exp04CV[4] - exp04CV[3]
+      deltaT = mv[2] - mv[1]
+      deltaV = mv[4] - mv[3]
       
-      DF[3,2] = formatC(deltaT, format="f", digits = 1)
-      DF[6,2] = formatC(deltaV, format="f", digits = 1)
+      DF[3,2] = ifelse(is.finite(deltaT), formatC(deltaT, format="f", digits = 1), '---')
+      DF[6,2] = ifelse(is.finite(deltaV), formatC(deltaV, format="f", digits = 1), '---')
     } else {
       DF[3,2] = '---'
       DF[6,2] = '---'
     }
-      
-    # plot the data
-    output$plot1 <- renderPlotly({
-      x = c('T1', 'T2', 'V1', 'V2')
-      y = exp04CV
-      fig = getBarPlot(x, y, "Measured Data")
-    })
     
     rhandsontable(DF, stretchH = "all", rowHeaders = FALSE)
   })
   
-  # render the second table
+  # render the second table, recalculated from the edited measurements
   output$hot2 <- renderRHandsontable({
-    DF = getResultsExp04C(pin)
+    DF = getResultsExp04C(pin, measurements())
     
     rhandsontable(DF, stretchH = "all", rowHeaders = FALSE)
+  })
+  
+  # plot the measured data, reacting to table edits
+  output$plot1 <- renderPlotly({
+    x = c('T1', 'T2', 'V1', 'V2')
+    y = measurements()
+    fig = getBarPlot(x, y, "Measured Data")
   })
   
   # Download the data to users computer as csv
@@ -149,10 +159,10 @@ getTableDataExp04C = function(pin) {
          'Initial water volume, V1 (mL)', 'Final water volume, V2 (mL)',
          'Change in water volume (V2 - V1)', 'Density of Water (g/mL)')
   
-  exp04CV <<- addNoise(c(53.4, 5.17, 100.0, 156.5), 0.08, r.values = TRUE, r.digits = 1)
+  exp04CV = addNoise(c(53.4, 5.17, 100.0, 156.5), 0.08, r.values = TRUE, r.digits = 1)
   
   if(!showSampleData(pin)) {
-    exp04CV <<- addNoise(c(0.0, 0.0, 0.0, 0.0), 0.08, r.values = TRUE, r.digits = 1)    
+    exp04CV = addNoise(c(0.0, 0.0, 0.0, 0.0), 0.08, r.values = TRUE, r.digits = 1)
   }
   
   v2 = c(exp04CV[1], exp04CV[2], '---', exp04CV[3], exp04CV[4], '---', '1.00')
@@ -164,8 +174,15 @@ getTableDataExp04C = function(pin) {
   return(df)
 }
 
-# function to calculate the results
-getResultsExp04C = function(pin) {
+# function to pull the four measured values (t1, t2, V1, V2) out of table 1
+getMeasurementsExp04C = function(df) {
+  # the numeric measurements sit in the second column on rows 1, 2, 4 and 5
+  v = suppressWarnings(as.numeric(df[c(1, 2, 4, 5), 2]))
+  return(v)
+}
+
+# function to calculate the results from the measured values
+getResultsExp04C = function(pin, measured) {
   v1 = c('Mass of ice melted (g)', 
          'Heat released by cooling water', 
          'Heat of fusion of ice (J/g)', 
@@ -176,14 +193,15 @@ getResultsExp04C = function(pin) {
   v2 = rep('---', 6)
   v2[5] = '6.02'
   
-  # display the results in admin or instructor
-  if(isAdminUser(pin)) {
-    deltaT = exp04CV[2] - exp04CV[1]
-    deltaV = exp04CV[4] - exp04CV[3]
+  # display the results in admin or instructor, and only for a usable set of
+  # measurements (all four entered, and a non-zero change in volume)
+  if(isAdminUser(pin) && all(is.finite(measured)) && measured[4] != measured[3]) {
+    deltaT = measured[2] - measured[1]
+    deltaV = measured[4] - measured[3]
     
     v2[1] = formatC(deltaV, format="f", digits = 1)
     
-    heat.water = exp04CV[3]*4.18*deltaT
+    heat.water = measured[3]*4.18*deltaT
     v2[2] = formatC(heat.water, format="f", digits = 1)
     
     heat.ice = (-1*heat.water/deltaV)

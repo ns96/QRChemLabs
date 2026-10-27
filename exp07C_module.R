@@ -29,7 +29,10 @@ exp07CUI <- function(id) {
           
           a("Experimental Kc Value", target="_blank", href="https://www.odinity.com/determining-equilibrium-constant-for-thiocyanatoiron/"),
           br(),
-          a("Temperature And Kc Value", target="_blank", href="https://www.chemguide.co.uk/physical/equilibria/change.html")
+          a("Temperature And Kc Value", target="_blank", href="https://www.chemguide.co.uk/physical/equilibria/change.html"),
+          br(),
+          # add button to open dialog to display data table of temperature vs Kc ranges
+          actionButton(ns("showKcRanges"), "Show Kc Ranges", icon = icon("table"), class = "btn-primary")
       ),
       
       box(width = 8, title = "Trial Absorbance Values", status = "primary",
@@ -111,6 +114,9 @@ exp07C <- function(input, output, session, pin) {
     y = values$data[['Absorbance.Value']]
     
     fig = getBarPlot(x, y, "Absorbance for Trials")
+
+    # plotly sorts categorical axes alphabetically, so pin the bars to the table order
+    fig = layout(fig, xaxis = list(categoryorder = "array", categoryarray = x))
   })
   
   # Download the data to users computer as csv
@@ -124,6 +130,18 @@ exp07C <- function(input, output, session, pin) {
     }
   )
   
+  # show the reference table of temperature vs expected Kc ranges
+  observeEvent(input$showKcRanges, {
+    showModal(modalDialog(
+      title = "Temperature vs Kc Ranges",
+      getKcRangesTableExp07C(Exp07C.Temperature),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+
+    cat("Show Kc Ranges -- EXP07C", "\n")
+  })
+
   # handle llm generate button selection
   observeEvent(input$llmGenerate, {
     # get the selected model and temperature
@@ -177,6 +195,60 @@ getResultsExp07C = function(DF) {
   return(df)
 }
 
+# build the temperature vs Kc reference table used by the "Show Kc Ranges" dialog
+getKcRangesExp07C = function() {
+  temp_C = 12:30
+  temp_K = temp_C + 273.15
+
+  # fine-tuned target Kc equation
+  target_kc = exp(6051.46 / temp_K - 15.4111)
+
+  # standard deviation for the expected student range
+  sd_val = 22.5
+
+  expected_range = paste0(round(target_kc - sd_val, 1), " \u2013 ",
+                          round(target_kc + sd_val, 1))
+
+  data.frame(
+    "Temperature (\u00b0C)" = temp_C,
+    "Target Kc" = round(target_kc, 1),
+    "Expected Student Range" = expected_range,
+    check.names = FALSE
+  )
+}
+
+# render the Kc range table, highlighting the row for the assigned temperature
+getKcRangesTableExp07C = function(currentTemp) {
+  df = getKcRangesExp07C()
+  currentTemp = as.numeric(currentTemp)
+
+  highlightStyle = "background-color: #d9edf7; font-weight: bold;"
+
+  caption = if (length(currentTemp) != 1 || is.na(currentTemp)) {
+    "No assigned solution temperature was found."
+  } else {
+    paste0("Your assigned solution temperature: ", currentTemp, " \u00b0C (highlighted)")
+  }
+
+  header = tags$tr(lapply(names(df), function(label) tags$th(label)))
+
+  rows = lapply(seq_len(nrow(df)), function(i) {
+    style = if (isTRUE(all.equal(df[[1]][i], currentTemp))) highlightStyle else NULL
+
+    tags$tr(lapply(df[i, ], function(value) tags$td(as.character(value), style = style)))
+  })
+
+  tags$div(
+    tags$p(caption),
+    tags$div(style = "max-height: 420px; overflow-y: auto;",
+      tags$table(class = "table table-condensed table-bordered",
+        tags$thead(header),
+        tags$tbody(rows)
+      )
+    )
+  )
+}
+
 # function to return data set
 getDataExp07C = function(pin) {
   dataNumberExp07C <<- sample(1:2, 1)
@@ -186,12 +258,12 @@ getDataExp07C = function(pin) {
   
   if(dataNumberExp07C == 1) {
     # Data -- Nathan
-    expData$Actual.Absorbance = c(0.153, 0.255, 0.344, 0.421, 0.547)
-    expData$Temperature = 13.0
+    expData$Actual.Absorbance = c(0.255, 0.365, 0.457, 0.523, 0.901)
+    expData$Temperature = 22.0
   } else {
-    # Data -- Abiola
-    expData$Actual.Absorbance = c(0.144, 0.262, 0.322, 0.457, 0.758)
-    expData$Temperature = 20.0
+    # Data -- Nathan
+    expData$Actual.Absorbance = c(0.198, 0.282, 0.374, 0.432, 0.820)
+    expData$Temperature = 24.0
   }
   
   # return dummy data

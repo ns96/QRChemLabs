@@ -32,7 +32,12 @@ exp07CUI <- function(id) {
           a("Temperature And Kc Value", target="_blank", href="https://www.chemguide.co.uk/physical/equilibria/change.html"),
           br(),
           # add button to open dialog to display data table of temperature vs Kc ranges
-          actionButton(ns("showKcRanges"), "Show Kc Ranges", icon = icon("table"), class = "btn-primary")
+          # and button to open dialog to display the Kc range as a confidence band plot
+          div(
+            actionButton(ns("showKcRanges"), "Show Kc Ranges", icon = icon("table"), class = "btn-primary"),
+            actionButton(ns("showKcPlot"), "Show Kc Plot", icon = icon("chart-line"), class = "btn-primary"),
+            style = "display: flex; gap: 8px; flex-wrap: wrap;"
+          )
       ),
       
       box(width = 8, title = "Trial Absorbance Values", status = "primary",
@@ -142,6 +147,30 @@ exp07C <- function(input, output, session, pin) {
     cat("Show Kc Ranges -- EXP07C", "\n")
   })
 
+  # render the Kc range confidence band plot shown in the "Show Kc Plot" dialog
+  output$kcPlot <- renderPlot({
+    plotData = getKcBandPlotDataExp07C()
+
+    getConfidenceBandPlot(plotData$df,
+                          ptitle = expression(paste("Target ", K[c], " vs. Temperature (12\u00b0C to 30\u00b0C)")),
+                          xlabel = "Temperature (\u00b0C)",
+                          ylabel = expression(paste("Equilibrium Constant (", K[c], ")")),
+                          points = plotData$points,
+                          xBreaks = plotData$xBreaks)
+  })
+
+  # show the line plot of the target Kc with its expected student range band
+  observeEvent(input$showKcPlot, {
+    showModal(modalDialog(
+      title = "Target Kc vs. Temperature",
+      plotOutput(session$ns("kcPlot"), height = "450px"),
+      easyClose = TRUE,
+      footer = modalButton("Close")
+    ))
+
+    cat("Show Kc Plot -- EXP07C", "\n")
+  })
+
   # handle llm generate button selection
   observeEvent(input$llmGenerate, {
     # get the selected model and temperature
@@ -195,13 +224,19 @@ getResultsExp07C = function(DF) {
   return(df)
 }
 
+# fine-tuned target Kc equation shared by the Kc range table and the Kc band plot
+getKcTargetExp07C = function(temp_C) {
+  temp_K = as.numeric(temp_C) + 273.15
+
+  exp(6051.46 / temp_K - 15.4111)
+}
+
 # build the temperature vs Kc reference table used by the "Show Kc Ranges" dialog
 getKcRangesExp07C = function() {
   temp_C = 12:30
-  temp_K = temp_C + 273.15
 
   # fine-tuned target Kc equation
-  target_kc = exp(6051.46 / temp_K - 15.4111)
+  target_kc = getKcTargetExp07C(temp_C)
 
   # standard deviation for the expected student range
   sd_val = 22.5
@@ -215,6 +250,29 @@ getKcRangesExp07C = function() {
     "Expected Student Range" = expected_range,
     check.names = FALSE
   )
+}
+
+# build the data used by the "Show Kc Plot" dialog -- the target Kc curve with
+# its expected student range band, plus the benchmark lab points
+getKcBandPlotDataExp07C = function() {
+  temp_C = seq(12, 30, by = 0.5)
+  target_kc = getKcTargetExp07C(temp_C)
+  sd_val = 22.5
+
+  df = data.frame(
+    x = temp_C,
+    y = target_kc,
+    lower = target_kc - sd_val,
+    upper = target_kc + sd_val
+  )
+
+  # benchmark lab points
+  points = data.frame(
+    x = c(22.0, 24.2),
+    y = c(162.7, 139.8)
+  )
+
+  list(df = df, points = points, xBreaks = seq(12, 30, by = 2))
 }
 
 # render the Kc range table, highlighting the row for the assigned temperature

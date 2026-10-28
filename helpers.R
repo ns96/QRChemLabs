@@ -3,6 +3,7 @@
 library(jsonlite)
 library(RMariaDB)
 library(httr)
+library(ggplot2)
 
 # https://stackoverflow.com/questions/37218319/plotly-not-creating-linear-trend-line
 # function to generate plotly
@@ -148,6 +149,46 @@ getConnectedScatterPlot = function(data, xlabel, ylabel, n1 = "real", n2 = "exp"
     add_trace(x = data$x2, y = data$y2, name = n2, type = 'scatter', mode = 'lines+markers') %>%
     layout(xaxis = list(title = xlabel), yaxis = list(title = ylabel))
   
+  return(p)
+}
+
+# function to plot a line with a shaded confidence band around it
+# df must have columns x, y, lower and upper -- lower and upper are the band edges
+# points is an optional data frame with columns x and y drawn as markers on top
+# of the band (e.g. measured lab values)
+getConfidenceBandPlot = function(df, ptitle, xlabel, ylabel,
+                                 points = NULL,
+                                 bandColour = "#1f77b4", pointColour = "#d62728",
+                                 xBreaks = waiver(), baseSize = 13) {
+  # the rhandsontable round trip can hand these columns back as characters
+  x     = suppressWarnings(as.numeric(df$x))
+  y     = suppressWarnings(as.numeric(df$y))
+  lower = suppressWarnings(as.numeric(df$lower))
+  upper = suppressWarnings(as.numeric(df$upper))
+
+  # order by x so the line and the band do not zigzag back on themselves
+  theOrder = order(x)
+  plotDF = data.frame(x = x, y = y, lower = lower, upper = upper)[theOrder, ]
+
+  p = ggplot(plotDF, aes(x = .data$x)) +
+    geom_ribbon(aes(ymin = .data$lower, ymax = .data$upper),
+                fill = bandColour, alpha = 0.2) +
+    geom_line(aes(y = .data$y), color = bandColour, linewidth = 1.2) +
+    scale_x_continuous(breaks = xBreaks) +
+    labs(title = ptitle, x = xlabel, y = ylabel) +
+    theme_minimal(base_size = baseSize) +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+          panel.grid.minor = element_blank())
+
+  # add the optional benchmark points
+  if(!is.null(points) && nrow(points) > 0) {
+    pointDF = data.frame(x = suppressWarnings(as.numeric(points$x)),
+                         y = suppressWarnings(as.numeric(points$y)))
+
+    p = p + geom_point(data = pointDF, aes(x = .data$x, y = .data$y),
+                       color = pointColour, size = 3)
+  }
+
   return(p)
 }
 
